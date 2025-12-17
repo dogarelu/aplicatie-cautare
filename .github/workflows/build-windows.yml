@@ -1,0 +1,39 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Create virtual environment
+      run: |
+        python -m venv venv
+        venv\Scripts\activate
+
+    - name: Install dependencies
+      run: |
+        venv\Scripts\pip install -r requirements.txt
+        venv\Scripts\pip install pyinstaller
+
+    - name: Build EXE
+      run: |
+        venv\Scripts\pyinstaller --onefile --windowed app.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-exe
+        path: dist/*.exe
