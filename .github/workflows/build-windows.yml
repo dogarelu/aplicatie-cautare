@@ -30,7 +30,7 @@ jobs:
 
     - name: Build EXE
       run: |
-        venv\Scripts\pyinstaller app.spec
+        venv\Scripts\pyinstaller --onefile --windowed app.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
