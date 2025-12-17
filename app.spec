@@ -21,29 +21,35 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,  # Required for onedir mode
     name='app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,  # Disable UPX compression (can trigger antivirus false positives)
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    onefile=False,  # Use onedir mode (less likely to trigger antivirus)
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name='app',
 )
 
 # BUNDLE is macOS-specific, only used on macOS
-# On Windows, the EXE above is the final output
+# On Windows, the COLLECT above creates the directory structure
 # app = BUNDLE(
-#     exe,
+#     coll,
 #     name='app.app',
 #     icon=None,
 #     bundle_identifier=None,
