@@ -120,8 +120,15 @@ def on_generate():
         if not script_path.exists():
             raise Exception(f"search_text.py not found in: {base_dir} or {output_dir}\nPlease ensure search_text.py is included in the application bundle.")
         
+        # Get line span value (0 or empty = entire page, otherwise use the value)
+        line_span_value = line_span_entry.get().strip()
+        if line_span_value and line_span_value.isdigit() and int(line_span_value) > 0:
+            line_span_arg = line_span_value
+        else:
+            line_span_arg = "0"  # 0 means entire page
+        
         result = subprocess.run(
-            [sys.executable, str(script_path), search_term, selected_root_folder, str(output_dir)],
+            [sys.executable, str(script_path), search_term, selected_root_folder, str(output_dir), line_span_arg],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -175,7 +182,7 @@ def on_generate():
 # Create main window
 root = tk.Tk()
 root.title("Report Generator")
-root.geometry("500x220")
+root.geometry("500x280")
 root.resizable(False, False)
 
 # Create and pack UI elements
@@ -205,6 +212,23 @@ tk.Label(root, text="Enter search term:").pack(padx=10, pady=(10, 5))
 
 entry = tk.Entry(root, width=50)
 entry.pack(padx=10, pady=5)
+
+# Line span section
+line_span_frame = tk.Frame(root)
+line_span_frame.pack(padx=10, pady=(5, 10), fill=tk.X)
+
+tk.Label(line_span_frame, text="Line span (0 = entire page):").pack(side=tk.LEFT, padx=(0, 10))
+
+line_span_entry = tk.Spinbox(
+    line_span_frame,
+    from_=0,
+    to=20,
+    width=10,
+    value=0
+)
+line_span_entry.pack(side=tk.LEFT)
+
+tk.Label(line_span_frame, text="lines", fg="gray").pack(side=tk.LEFT, padx=(5, 0))
 
 button = tk.Button(root, text="Generate Report", command=on_generate)
 button.pack(pady=15)

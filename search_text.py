@@ -246,7 +246,71 @@ def find_match_context(query_text: str, page_lines: list, before: int = 2, after
     return page_lines[start_idx:end_idx]
 
 
-def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD):
+def check_words_in_line_span(query_words: list, page_lines: list, line_span: int) -> tuple:
+    """
+    Verifică dacă toate cuvintele din query apar într-un span de linii.
+    Returnează (found, score, start_idx, end_idx) unde:
+    - found: True dacă toate cuvintele sunt găsite în span
+    - score: score-ul match-ului (0-100)
+    - start_idx, end_idx: indicii liniei de start și end pentru snippet
+    """
+    if not page_lines or not query_words:
+        return (False, 0, 0, 0)
+    
+    # Normalizează toate liniile
+    norm_lines = [normalize_text(line) for line in page_lines if line.strip()]
+    
+    if not norm_lines:
+        return (False, 0, 0, 0)
+    
+    # Căutăm în fiecare span posibil de linii
+    best_score = 0
+    best_start = 0
+    best_end = 0
+    found_all = False
+    
+    for start_idx in range(len(norm_lines)):
+        # Verificăm span-ul care începe la start_idx
+        end_idx = min(start_idx + line_span, len(norm_lines))
+        span_lines = norm_lines[start_idx:end_idx]
+        span_text = " ".join(span_lines)
+        
+        # Verificăm câte cuvinte din query apar în acest span
+        words_found = sum(1 for word in query_words if word in span_text)
+        word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
+        
+        # Calculăm score folosind rapidfuzz pe span-ul de text
+        query_text = " ".join(query_words)
+        fuzz_score = fuzz.partial_ratio(query_text, span_text)
+        
+        # Combinăm score-urile
+        if words_found == len(query_words):
+            # Toate cuvintele sunt prezente
+            score = max(fuzz_score, word_coverage * 0.9)
+            if score > best_score:
+                best_score = score
+                best_start = start_idx
+                best_end = end_idx
+                found_all = True
+        elif words_found >= len(query_words) * 0.8:
+            # Cel puțin 80% din cuvinte
+            score = (fuzz_score + word_coverage) / 2
+            if score > best_score:
+                best_score = score
+                best_start = start_idx
+                best_end = end_idx
+        else:
+            # Prea puține cuvinte, dar păstrăm pentru comparație
+            score = fuzz_score * (words_found / len(query_words))
+            if score > best_score and not found_all:
+                best_score = score
+                best_start = start_idx
+                best_end = end_idx
+    
+    return (found_all, best_score, best_start, best_end)
+
+
+def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, line_span: int = None):
     """
     Caută query_text în toate paginile și returnează toate match-urile
     cu score >= threshold.
@@ -259,6 +323,13 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     
     Acest lucru se realizează prin normalizarea atât a query-ului cât și a textului OCR,
     astfel încât toate variantele diacritice se mapează la aceeași formă de bază.
+    
+    Args:
+        query_text: Textul de căutat
+        pages: Lista de pagini OCR
+        threshold: Scorul minim pentru match (0-100)
+        line_span: Numărul de linii în care să se caute cuvintele (None = întreaga pagină)
+                   Ex: line_span=4 înseamnă că toate cuvintele trebuie să fie în 4 linii consecutive
     
     Returnează listă de dict:
     {
@@ -283,6 +354,28 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     matches = []
     
     for page in pages:
+        page_lines = page.get("lines", [])
+        
+        # Dacă line_span este specificat, căutăm doar în span-uri de linii
+        if line_span is not None and line_span > 0 and page_lines:
+            found, score, start_idx, end_idx = check_words_in_line_span(query_words, page_lines, line_span)
+            
+            if found and score >= threshold:
+                # Extragem snippet-ul din span-ul găsit
+                snippet_start = max(0, start_idx - 2)  # 2 linii înainte pentru context
+                snippet_end = min(len(page_lines), end_idx + 2)  # 2 linii după pentru context
+                snippet = page_lines[snippet_start:snippet_end]
+                
+                matches.append({
+                    "folder": page["folder"],
+                    "image": page["page_img"],
+                    "score": round(score, 1),
+                    "page_num": page["page_num"],
+                    "snippet": snippet
+                })
+            continue
+        
+        # Căutare normală pe întreaga pagină (comportament original)
         # Normalizează textul OCR pentru a se potrivi cu toate variantele din query
         # Ex: "cîmp" -> "camp", "câmp" -> "camp", "camp" -> "camp"
         norm_page = normalize_text(page["text"])
@@ -313,7 +406,7 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
         
         if final_score >= threshold:
             # Găsim contextul pentru snippet
-            snippet = find_match_context(query_text, page.get("lines", []))
+            snippet = find_match_context(query_text, page_lines)
             
             matches.append({
                 "folder": page["folder"],
@@ -333,17 +426,58 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python search_text.py \"text query\" OCR_ROOT [threshold] [output_dir]")
+        print("Usage: python search_text.py \"text query\" OCR_ROOT [threshold] [output_dir] [line_span]")
         print("  text query = 2-12 word text to search for")
         print("  OCR_ROOT   = folder with OCR .txt files")
         print("  threshold  = minimum score (0-100), default 70")
         print("  output_dir = directory to save default.docx (optional)")
+        print("  line_span  = number of lines to search within (optional, 0 = entire page)")
         sys.exit(1)
 
     query_text = sys.argv[1]
     ocr_root = Path(sys.argv[2])
-    threshold = int(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_THRESHOLD
-    output_dir = Path(sys.argv[4]) if len(sys.argv) > 4 else Path.cwd()
+    
+    # Parse optional arguments
+    # Order: [threshold] [output_dir] [line_span]
+    # But app.py calls with: [output_dir] [line_span] (no threshold)
+    # So we need to detect: if arg3 is a number 0-100, it's threshold; otherwise it's output_dir
+    threshold = DEFAULT_THRESHOLD
+    output_dir = Path.cwd()
+    line_span = None
+    
+    if len(sys.argv) > 3:
+        arg3 = sys.argv[3]
+        # Check if arg3 is a threshold (number 0-100) or output_dir (path)
+        try:
+            potential_threshold = int(arg3)
+            if 0 <= potential_threshold <= 100:
+                # It's a threshold
+                threshold = potential_threshold
+                # Next arg should be output_dir
+                if len(sys.argv) > 4:
+                    output_dir = Path(sys.argv[4])
+                    # Next arg should be line_span
+                    if len(sys.argv) > 5:
+                        line_span_val = int(sys.argv[5])
+                        line_span = line_span_val if line_span_val > 0 else None
+            else:
+                # Number but not valid threshold, treat as output_dir (unlikely but handle it)
+                output_dir = Path(arg3)
+                if len(sys.argv) > 4:
+                    try:
+                        line_span_val = int(sys.argv[4])
+                        line_span = line_span_val if line_span_val > 0 else None
+                    except ValueError:
+                        pass
+        except ValueError:
+            # Not a number, must be output_dir
+            output_dir = Path(arg3)
+            if len(sys.argv) > 4:
+                try:
+                    line_span_val = int(sys.argv[4])
+                    line_span = line_span_val if line_span_val > 0 else None
+                except ValueError:
+                    pass
 
     if not ocr_root.is_dir():
         print(f"OCR root folder not found: {ocr_root}")
@@ -358,10 +492,12 @@ def main():
 
     print(f"\nSearching for: \"{query_text}\"")
     print(f"Threshold: {threshold}")
+    if line_span is not None:
+        print(f"Line span: {line_span} lines")
     print("-" * 60)
 
     try:
-        matches = search_text_in_pages(query_text, pages, threshold)
+        matches = search_text_in_pages(query_text, pages, threshold, line_span=line_span)
         
         # Write results to text file
         output_file = output_dir / "search-result.txt"
@@ -387,8 +523,20 @@ def main():
                     print(f"{i}. Score: {match['score']:.1f} | {match['folder']} | {match['image']} | Page {match['page_num']}")
         
         # Write results to Word document
-        # Use output_dir if provided, otherwise use current working directory
-        docx_file = output_dir / "default.docx"
+        # Check for bundled default.docx first (PyInstaller), then output_dir, then create new
+        docx_file = None
+        
+        # Check if running as PyInstaller executable and look for bundled default.docx
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            bundled_docx = Path(sys._MEIPASS) / "default.docx"
+            if bundled_docx.exists():
+                docx_file = bundled_docx
+        
+        # If not found in bundle, check output_dir
+        if docx_file is None or not docx_file.exists():
+            docx_file = output_dir / "default.docx"
+        
+        # Load template if it exists, otherwise create new document
         if docx_file.exists():
             doc = Document(str(docx_file))
             # Clear existing content (keep styles) by removing all paragraphs
