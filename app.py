@@ -7,6 +7,7 @@ import subprocess
 import platform
 import requests
 import time
+import json
 from typing import List, Set, Dict
 from pathlib import Path
 from rapidfuzz import fuzz
@@ -93,6 +94,55 @@ def get_output_path():
         return Path(__file__).parent
 
 
+def get_app_config():
+    """Get app configuration from file."""
+    config_file = get_output_path() / ".app_config.json"
+    if config_file.exists():
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+def save_app_config(config: dict):
+    """Save app configuration to file."""
+    config_file = get_output_path() / ".app_config.json"
+    try:
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+    except:
+        pass
+
+def get_last_library_dir():
+    """Get the last library directory from config file."""
+    config = get_app_config()
+    last_dir = config.get('last_library_dir')
+    if last_dir and Path(last_dir).exists():
+        return last_dir
+    return None
+
+def save_last_library_dir(directory: str):
+    """Save the last library directory to config file."""
+    config = get_app_config()
+    config['last_library_dir'] = directory
+    save_app_config(config)
+
+def get_last_export_dir():
+    """Get the last export directory from config file."""
+    config = get_app_config()
+    last_dir = config.get('last_export_dir')
+    if last_dir and Path(last_dir).exists():
+        return last_dir
+    return None
+
+def save_last_export_dir(directory: str):
+    """Save the last export directory to config file."""
+    config = get_app_config()
+    config['last_export_dir'] = directory
+    save_app_config(config)
+
+
 # ---------- Text Normalization Functions ----------
 
 def normalize_similar_letters(s: str) -> str:
@@ -136,13 +186,17 @@ def words_match_simple(query_word: str, text_word: str) -> bool:
     # Calculate Levenshtein distance using rapidfuzz
     lev_distance = Levenshtein.distance(query_word, text_word)
     
-    # Determine allowed distance based on query word length
+    # Determine allowed distance based on word length
     # Use the longer of the two words to determine the threshold
     max_length = max(len(query_word), len(text_word))
     
     # For words 4-7 characters, allow 1 character difference
-    if max_length >= 4:
+    if 4 <= max_length <= 7:
         return lev_distance <= 1
+    
+    # For words >= 8 characters, allow 2 character differences
+    if max_length >= 8:
+        return lev_distance <= 2
     
     # Fallback (shouldn't reach here, but handle it)
     return lev_distance <= 1
@@ -496,10 +550,30 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     all_words = []  # (normalized_word, line_idx, original_word, original_line)
     for line_idx, (norm_line, orig_line) in enumerate(zip(norm_lines, original_lines)):
         norm_words = norm_line.split()
-        orig_words = orig_line.split()
-        # Match normalized words with original words (they should have same count)
+        # For original words, we need to handle cases where normalization splits words
+        # (e.g., "Corbea/ncălica" becomes "corbea ncalica")
+        # Split original line and try to map normalized words back
+        orig_words_raw = orig_line.split()
+        orig_line_norm = normalize_text(orig_line)
+        orig_words_norm = orig_line_norm.split()
+        
+        # Map each normalized word to an original word
         for i, norm_word in enumerate(norm_words):
-            orig_word = orig_words[i] if i < len(orig_words) else norm_word
+            orig_word = norm_word  # Default fallback
+            # Try to find matching original word
+            if i < len(orig_words_norm):
+                # Find which original word(s) this normalized word came from
+                for orig_w in orig_words_raw:
+                    orig_w_norm = normalize_text(orig_w)
+                    # Check if this normalized word is in the normalized original word
+                    if norm_word == orig_w_norm or (norm_word in orig_w_norm and len(norm_word) >= 4):
+                        orig_word = orig_w
+                        break
+                    # Also check if original word contains this normalized word (for split cases)
+                    orig_w_parts = orig_w_norm.split()
+                    if norm_word in orig_w_parts:
+                        orig_word = orig_w
+                        break
             all_words.append((norm_word, line_idx, orig_word, orig_line))
     
     if not all_words:
@@ -947,13 +1021,20 @@ def find_image_path(volume_path: Path, image_filename: str) -> Path:
 def on_select_folder():
     """Handle the Select Biblioteca button click."""
     global selected_root_folder, selected_paths, selected_volumes
-    folder = filedialog.askdirectory(title="Select Biblioteca Folder")
+    
+    # Get last library directory or use home directory
+    last_dir = get_last_library_dir()
+    initial_dir = last_dir if last_dir else str(Path.home())
+    
+    folder = filedialog.askdirectory(title="Select Biblioteca Folder", initialdir=initial_dir)
     if folder:
         selected_root_folder = folder
         selected_paths = []  # Reset selections
         selected_volumes = []  # Reset volumes
         folder_label.config(text=f"Biblioteca: {Path(folder).name}")
         populate_library_tree(folder)
+        # Remember the directory for next time
+        save_last_library_dir(folder)
     else:
         folder_label.config(text="No Biblioteca selected")
         library_tree.delete(*library_tree.get_children())
@@ -972,20 +1053,20 @@ def generate_filename_from_search(search_term: str) -> str:
     return filename + ".docx"
 
 
-def create_results_window():
-    """Create or show the results window."""
+def create_results_window(search_term: str = ""):
+    """Create a new results window."""
     global results_window, results_scrollable_frame, results_canvas, export_button_frame, results_title_label
     
-    # If window exists, just bring it to front
-    if results_window is not None and results_window.winfo_exists():
-        results_window.lift()
-        results_window.focus()
-        return
-    
+    # Always create a new window (don't reuse existing ones)
     # Create new results window
     results_window = tk.Toplevel(root)
-    results_window.title("Rezultate Căutare")
-    results_window.geometry("1200x700")
+    if search_term:
+        # Truncate search term if too long for title
+        title_search = search_term[:50] + "..." if len(search_term) > 50 else search_term
+        results_window.title(f"Rezultate Căutare: {title_search}")
+    else:
+        results_window.title("Rezultate Căutare")
+    results_window.minsize(800, 500)
     results_window.configure(bg=COLOR_BACKGROUND)
     
     # Ensure window appears in front, especially on Windows when main window is fullscreen
@@ -1052,8 +1133,8 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     word_span: number of words to show in the quote fragment."""
     global results_title_label
     
-    # Create or show results window
-    create_results_window()
+    # Create new results window with search term
+    create_results_window(search_term)
     
     # Update title with result count
     num_results = len(matches)
@@ -1083,11 +1164,11 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     header_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
     
     # Checkbox column header
-    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=3).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Volume", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=15).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=8).pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
-    tk.Label(header_frame, text="Pagina", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=10).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Citat", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=60).pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Volume", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
+    tk.Label(header_frame, text="Pagina", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Citat", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
     
     # Get search words for highlighting
     search_words = search_term.split()
@@ -1136,9 +1217,8 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             font=("Arial", 24),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
-            width=15,
             anchor="w",
-            wraplength=150
+            wraplength=200
         )
         volume_label.pack(side=tk.LEFT, padx=5, pady=5)
         
@@ -1171,8 +1251,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                 text=str(match["page_num"]),
                 font=("Arial", 24),
                 bg=COLOR_BACKGROUND,
-                fg=COLOR_TEXT,
-                width=10
+                fg=COLOR_TEXT
             )
             page_label.pack(side=tk.LEFT, padx=5, pady=5)
         else:
@@ -1264,7 +1343,6 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             font=("Arial", 24),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
-            width=60,
             height=4,
             wrap=tk.WORD,
             relief=tk.FLAT,
@@ -1439,12 +1517,17 @@ def export_selected_to_docx(search_term: str):
         # Generate filename from search term
         suggested_filename = generate_filename_from_search(search_term)
         
+        # Get last export directory or use default
+        last_dir = get_last_export_dir()
+        initial_dir = last_dir if last_dir else str(output_dir)
+        
         # Open save dialog for user to choose location and filename
         save_path = filedialog.asksaveasfilename(
             title="Save Report",
             defaultextension=".docx",
             filetypes=[("Word documents", "*.docx"), ("All files", "*.*")],
-            initialfile=suggested_filename
+            initialfile=suggested_filename,
+            initialdir=initial_dir
         )
         
         if not save_path:
@@ -1453,6 +1536,9 @@ def export_selected_to_docx(search_term: str):
         
         # Save document
         doc.save(save_path)
+        
+        # Remember the directory for next time (persists across app restarts)
+        save_last_export_dir(str(Path(save_path).parent))
         
         # Show success message
         messagebox.showinfo(
@@ -1791,7 +1877,7 @@ def on_tree_click(event):
 # Create main window with library theme
 root = tk.Tk()
 root.title("Biblioteca - Căutare Documente")
-root.geometry("700x550")
+root.minsize(600, 450)
 root.configure(bg="#F5E6D3")  # Warm beige background like old books
 
 # Library-themed colors
@@ -1898,7 +1984,7 @@ library_tree = ttk.Treeview(
     xscrollcommand=h_scrollbar.set,
     selectmode="extended"
 )
-library_tree.column("#0", width=600, minwidth=200)
+library_tree.column("#0", width=600, minwidth=200, stretch=True)
 library_tree.column("path", width=0, stretch=False)  # Hidden column
 library_tree.column("type", width=0, stretch=False)  # Hidden column
 
@@ -2017,7 +2103,6 @@ tk.Label(
 
 entry = tk.Entry(
     search_frame,
-    width=60,
     font=("Arial", 26),
     relief=tk.SUNKEN,
     bd=2
@@ -2045,7 +2130,6 @@ word_span_dropdown = ttk.Combobox(
     textvariable=word_span_var,
     values=word_span_options,
     state="readonly",
-    width=15,
     font=("Arial", 36)
 )
 word_span_dropdown.pack(side=tk.LEFT)
@@ -2071,7 +2155,6 @@ word_order_dropdown = ttk.Combobox(
     textvariable=word_order_var,
     values=word_order_options,
     state="readonly",
-    width=15,
     font=("Arial", 36)
 )
 word_order_dropdown.pack(side=tk.LEFT)
