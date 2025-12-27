@@ -985,8 +985,16 @@ def create_results_window():
     # Create new results window
     results_window = tk.Toplevel(root)
     results_window.title("Rezultate Căutare")
-    results_window.geometry("1400x800")
+    results_window.geometry("1200x700")
     results_window.configure(bg=COLOR_BACKGROUND)
+    
+    # Ensure window appears in front, especially on Windows when main window is fullscreen
+    results_window.lift()
+    results_window.focus_force()
+    # Temporarily set topmost to ensure it appears above fullscreen windows
+    results_window.attributes('-topmost', True)
+    results_window.update()
+    results_window.attributes('-topmost', False)
     
     # Header
     header_frame = tk.Frame(results_window, bg=COLOR_BACKGROUND, pady=10)
@@ -995,7 +1003,7 @@ def create_results_window():
     results_title_label = tk.Label(
         header_frame,
         text="📋 Rezultate Căutare",
-        font=("Arial", 44, "bold"),
+        font=("Arial", 36, "bold"),
         bg=COLOR_BACKGROUND,
         fg=COLOR_TEXT
     )
@@ -1059,7 +1067,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         no_results_label = tk.Label(
             results_scrollable_frame,
             text="Nu s-au găsit rezultate.",
-            font=("Arial", 30),
+            font=("Arial", 24),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT
         )
@@ -1075,11 +1083,11 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     header_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
     
     # Checkbox column header
-    tk.Label(header_frame, text="", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=3).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Volume", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=15).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=8).pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
-    tk.Label(header_frame, text="Pagina", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=10).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Citat", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=60).pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=3).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Volume", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=15).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=8).pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
+    tk.Label(header_frame, text="Pagina", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=10).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Citat", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white", width=60).pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
     
     # Get search words for highlighting
     search_words = search_term.split()
@@ -1095,7 +1103,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         checkbox_btn = tk.Button(
             row_frame,
             text="☑",
-            font=("Arial", 40),
+            font=("Arial", 32),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             relief=tk.FLAT,
@@ -1107,9 +1115,9 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         
         def update_checkbox_display(var=None, index=None, mode=None, btn=checkbox_btn, var_ref=checkbox_var):
             if var_ref.get():
-                btn.config(text="☑", font=("Arial", 40))
+                btn.config(text="☑", font=("Arial", 32))
             else:
-                btn.config(text="☐", font=("Arial", 40))
+                btn.config(text="☐", font=("Arial", 32))
         
         def toggle_checkbox(var_ref=checkbox_var):
             var_ref.set(not var_ref.get())
@@ -1125,7 +1133,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         volume_label = tk.Label(
             row_frame,
             text=match["folder"],
-            font=("Arial", 30),
+            font=("Arial", 24),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             width=15,
@@ -1143,7 +1151,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                 btn = tk.Button(
                     row_frame,
                     text="📷 Deschide",
-                    font=("Arial", 28),
+                    font=("Arial", 22),
                     bg=COLOR_BOOK,
                     fg=COLOR_TEXT,
                     relief=tk.RAISED,
@@ -1161,7 +1169,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             page_label = tk.Label(
                 row_frame,
                 text=str(match["page_num"]),
-                font=("Arial", 30),
+                font=("Arial", 24),
                 bg=COLOR_BACKGROUND,
                 fg=COLOR_TEXT,
                 width=10
@@ -1253,7 +1261,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Create a Text widget for formatted quote (supports bold)
         quote_text_widget = tk.Text(
             row_frame,
-            font=("Arial", 30),
+            font=("Arial", 24),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             width=60,
@@ -1290,7 +1298,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                     end_pos = f"1.0+{char_count + len(quote_words_list[i])}c"
                     quote_text_widget.tag_add("bold", start_pos, end_pos)
         
-        quote_text_widget.tag_config("bold", font=("Arial", 30, "bold"))
+        quote_text_widget.tag_config("bold", font=("Arial", 24, "bold"))
         quote_text_widget.config(state=tk.DISABLED)  # Make read-only after formatting
     
     # Update scroll region
@@ -1311,7 +1319,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             command=lambda: export_selected_to_docx(search_term),
             bg=COLOR_SHELF,
             fg="white",
-            font=("Arial", 36, "bold"),
+            font=("Arial", 30, "bold"),
             relief=tk.RAISED,
             padx=20,
             pady=10,
@@ -1783,7 +1791,7 @@ def on_tree_click(event):
 # Create main window with library theme
 root = tk.Tk()
 root.title("Biblioteca - Căutare Documente")
-root.geometry("800x600")
+root.geometry("700x550")
 root.configure(bg="#F5E6D3")  # Warm beige background like old books
 
 # Library-themed colors
@@ -1830,7 +1838,7 @@ header_frame.pack(fill=tk.X)
 title_label = tk.Label(
     header_frame,
     text="📚 BIBLIOTECA 📚",
-    font=("Times", 64, "bold"),
+    font=("Times", 50, "bold"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 )
@@ -1839,7 +1847,7 @@ title_label.pack()
 subtitle_label = tk.Label(
     header_frame,
     text="Selectează Biblioteca, Rafturi sau Volume pentru căutare",
-    font=("Times", 32, "italic"),
+    font=("Times", 26, "italic"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_ACCENT
 )
@@ -1855,7 +1863,7 @@ select_folder_button = tk.Button(
     command=on_select_folder,
     bg=COLOR_SHELF,
     fg="white",
-    font=("Arial", 32, "bold"),
+    font=("Arial", 26, "bold"),
     relief=tk.RAISED,
     padx=15,
     pady=8,
@@ -1868,7 +1876,7 @@ folder_label = tk.Label(
     text="Nicio bibliotecă selectată",
     fg=COLOR_ACCENT,
     bg=COLOR_BACKGROUND,
-    font=("Arial", 30, "italic"),
+    font=("Arial", 24, "italic"),
     anchor="w"
 )
 folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -1896,8 +1904,8 @@ library_tree.column("type", width=0, stretch=False)  # Hidden column
 
 # Configure treeview font and row height
 style = ttk.Style()
-style.configure("Treeview", font=("Arial", 30), rowheight=60)
-style.configure("Treeview.Heading", font=("Arial", 30, "bold"))
+style.configure("Treeview", font=("Arial", 24), rowheight=50)
+style.configure("Treeview.Heading", font=("Arial", 24, "bold"))
 
 # Configure tags for styling
 library_tree.tag_configure("folder", background="#F0E0C0", foreground=COLOR_TEXT)
@@ -1962,7 +1970,7 @@ select_all_btn = tk.Button(
     command=select_all_items,
     bg=COLOR_BOOK,
     fg=COLOR_TEXT,
-    font=("Arial", 28),
+    font=("Arial", 22),
     relief=tk.RAISED,
     padx=10,
     pady=5,
@@ -1976,7 +1984,7 @@ deselect_all_btn = tk.Button(
     command=deselect_all_items,
     bg=COLOR_BOOK,
     fg=COLOR_TEXT,
-    font=("Arial", 28),
+    font=("Arial", 22),
     relief=tk.RAISED,
     padx=10,
     pady=5,
@@ -2002,7 +2010,7 @@ search_frame.pack(padx=15, pady=10, fill=tk.X)
 tk.Label(
     search_frame,
     text="Căutare:",
-    font=("Arial", 32, "bold"),
+    font=("Arial", 26, "bold"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(anchor="w", pady=(0, 5))
@@ -2010,7 +2018,7 @@ tk.Label(
 entry = tk.Entry(
     search_frame,
     width=60,
-    font=("Arial", 32),
+    font=("Arial", 26),
     relief=tk.SUNKEN,
     bd=2
 )
@@ -2023,7 +2031,7 @@ word_span_frame.pack(padx=15, pady=5, fill=tk.X)
 tk.Label(
     word_span_frame,
     text="Span cuvinte:",
-    font=("Arial", 30),
+    font=("Arial", 24),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(side=tk.LEFT, padx=(0, 10))
@@ -2038,7 +2046,7 @@ word_span_dropdown = ttk.Combobox(
     values=word_span_options,
     state="readonly",
     width=15,
-    font=("Arial", 30)
+    font=("Arial", 36)
 )
 word_span_dropdown.pack(side=tk.LEFT)
 
@@ -2049,7 +2057,7 @@ word_order_frame.pack(padx=15, pady=5, fill=tk.X)
 tk.Label(
     word_order_frame,
     text="Ordinea cuvintelor:",
-    font=("Arial", 30),
+    font=("Arial", 24),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(side=tk.LEFT, padx=(0, 10))
@@ -2064,7 +2072,7 @@ word_order_dropdown = ttk.Combobox(
     values=word_order_options,
     state="readonly",
     width=15,
-    font=("Arial", 30)
+    font=("Arial", 36)
 )
 word_order_dropdown.pack(side=tk.LEFT)
 
@@ -2075,7 +2083,7 @@ button = tk.Button(
     command=on_generate,
     bg=COLOR_SHELF,
     fg="white",
-    font=("Arial", 36, "bold"),
+    font=("Arial", 30, "bold"),
     relief=tk.RAISED,
     padx=20,
     pady=10,
