@@ -360,12 +360,24 @@ def _load_pages_from_folder(folder: Path, pages: list):
                         return
                     clean_lines = [line.strip() for line in lines_buffer if line.strip() and not PAGE_HEADER_RE.match(line.strip())]
                     page_num_from_img = extract_page_number_from_image(current_page_img)
+                    
+                    # Check if image file exists
+                    image_path = folder / current_page_img
+                    image_exists = image_path.exists()
+                    if not image_exists:
+                        # Try to find it in subdirectories
+                        for img_file in folder.rglob(current_page_img):
+                            if img_file.exists():
+                                image_exists = True
+                                break
+                    
                     pages.append({
                         "folder": folder.name,
                         "volume_path": str(folder),  # Full path to volume folder
                         "txt_file": txt.name,
                         "page_num": page_num_from_img if page_num_from_img else current_page_num,
                         "page_img": current_page_img,
+                        "image_exists": image_exists,  # Store whether image exists
                         "text": content,
                         "lines": clean_lines,
                     })
@@ -886,7 +898,7 @@ def generate_filename_from_search(search_term: str) -> str:
 
 def create_results_window():
     """Create or show the results window."""
-    global results_window, results_scrollable_frame, results_canvas, export_button_frame
+    global results_window, results_scrollable_frame, results_canvas, export_button_frame, results_title_label
     
     # If window exists, just bring it to front
     if results_window is not None and results_window.winfo_exists():
@@ -904,14 +916,14 @@ def create_results_window():
     header_frame = tk.Frame(results_window, bg=COLOR_BACKGROUND, pady=10)
     header_frame.pack(fill=tk.X, padx=15)
     
-    title_label = tk.Label(
+    results_title_label = tk.Label(
         header_frame,
         text="📋 Rezultate Căutare",
-        font=("Arial", 16, "bold"),
+        font=("Arial", 44, "bold"),
         bg=COLOR_BACKGROUND,
         fg=COLOR_TEXT
     )
-    title_label.pack(anchor="w")
+    results_title_label.pack(anchor="w")
     
     # Results container
     results_container = tk.Frame(results_window, bg=COLOR_BACKGROUND)
@@ -954,8 +966,14 @@ def create_results_window():
 def display_results_in_table(matches: list, search_term: str, word_span: int = 10):
     """Display search results in a table format.
     word_span: number of words to show in the quote fragment."""
+    global results_title_label
+    
     # Create or show results window
     create_results_window()
+    
+    # Update title with result count
+    num_results = len(matches)
+    results_title_label.config(text=f"📋 Rezultate Căutare ({num_results})")
     
     # Clear existing results
     for widget in results_scrollable_frame.winfo_children():
@@ -965,7 +983,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         no_results_label = tk.Label(
             results_scrollable_frame,
             text="Nu s-au găsit rezultate.",
-            font=("Arial", 10),
+            font=("Arial", 30),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT
         )
@@ -981,11 +999,11 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     header_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
     
     # Checkbox column header
-    tk.Label(header_frame, text="", font=("Arial", 11, "bold"), bg=COLOR_SHELF, fg="white", width=3).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Volume", font=("Arial", 11, "bold"), bg=COLOR_SHELF, fg="white", width=25).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Pagina", font=("Arial", 11, "bold"), bg=COLOR_SHELF, fg="white", width=12).pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Citat", font=("Arial", 11, "bold"), bg=COLOR_SHELF, fg="white", width=60).pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
-    tk.Label(header_frame, text="Acțiune", font=("Arial", 11, "bold"), bg=COLOR_SHELF, fg="white", width=15).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=3).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Volume", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=15).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=8).pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
+    tk.Label(header_frame, text="Pagina", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=10).pack(side=tk.LEFT, padx=5, pady=5)
+    tk.Label(header_frame, text="Citat", font=("Arial", 32, "bold"), bg=COLOR_SHELF, fg="white", width=60).pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
     
     # Get search words for highlighting
     search_words = search_term.split()
@@ -995,40 +1013,87 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         row_frame = tk.Frame(results_scrollable_frame, bg=COLOR_BACKGROUND, relief=tk.RIDGE, bd=1)
         row_frame.pack(fill=tk.X, pady=2, padx=5)
         
-        # Checkbox (checked by default)
+        # Checkbox (checked by default) - custom larger checkbox
         checkbox_var = tk.BooleanVar(value=True)
-        checkbox = tk.Checkbutton(
+        
+        checkbox_btn = tk.Button(
             row_frame,
-            variable=checkbox_var,
+            text="☑",
+            font=("Arial", 40),
             bg=COLOR_BACKGROUND,
-            activebackground=COLOR_BACKGROUND
+            fg=COLOR_TEXT,
+            relief=tk.FLAT,
+            bd=0,
+            padx=5,
+            pady=5,
+            cursor="hand2"
         )
-        checkbox.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        def update_checkbox_display(var=None, index=None, mode=None, btn=checkbox_btn, var_ref=checkbox_var):
+            if var_ref.get():
+                btn.config(text="☑", font=("Arial", 40))
+            else:
+                btn.config(text="☐", font=("Arial", 40))
+        
+        def toggle_checkbox(var_ref=checkbox_var):
+            var_ref.set(not var_ref.get())
+        
+        checkbox_btn.config(command=toggle_checkbox)
+        checkbox_btn.pack(side=tk.LEFT, padx=5, pady=5)
         match_checkboxes.append((match, checkbox_var))
+        
+        # Update display when variable changes
+        checkbox_var.trace_add("write", update_checkbox_display)
         
         # Volume name
         volume_label = tk.Label(
             row_frame,
             text=match["folder"],
-            font=("Arial", 10),
+            font=("Arial", 30),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
-            width=25,
+            width=15,
             anchor="w",
-            wraplength=200
+            wraplength=150
         )
         volume_label.pack(side=tk.LEFT, padx=5, pady=5)
         
-        # Page number
-        page_label = tk.Label(
-            row_frame,
-            text=str(match["page_num"]),
-            font=("Arial", 10),
-            bg=COLOR_BACKGROUND,
-            fg=COLOR_TEXT,
-            width=12
-        )
-        page_label.pack(side=tk.LEFT, padx=5, pady=5)
+        # Check if image exists (fallback: don't show page or button if image doesn't exist)
+        image_exists = match.get("image_exists", True)  # Default to True for backward compatibility
+        
+        if image_exists:
+            # Open image button (moved between Volume and Page)
+            def make_open_button(match_data):
+                btn = tk.Button(
+                    row_frame,
+                    text="📷 Deschide",
+                    font=("Arial", 28),
+                    bg=COLOR_BOOK,
+                    fg=COLOR_TEXT,
+                    relief=tk.RAISED,
+                    padx=10,
+                    pady=5,
+                    cursor="hand2",
+                    command=lambda: open_match_image(match_data)
+                )
+                return btn
+            
+            open_btn = make_open_button(match)
+            open_btn.pack(side=tk.LEFT, padx=5, pady=5)
+            
+            # Page number
+            page_label = tk.Label(
+                row_frame,
+                text=str(match["page_num"]),
+                font=("Arial", 30),
+                bg=COLOR_BACKGROUND,
+                fg=COLOR_TEXT,
+                width=10
+            )
+            page_label.pack(side=tk.LEFT, padx=5, pady=5)
+        else:
+            # Image doesn't exist - skip page number and button
+            pass
         
         # Quote with bolded search words - use the exact matched fragment if available
         if "matched_fragment" in match and match["matched_fragment"]:
@@ -1073,7 +1138,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Create a Text widget for formatted quote (supports bold)
         quote_text_widget = tk.Text(
             row_frame,
-            font=("Arial", 10),
+            font=("Arial", 30),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             width=60,
@@ -1110,27 +1175,8 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                     end_pos = f"1.0+{char_count + len(quote_words_list[i])}c"
                     quote_text_widget.tag_add("bold", start_pos, end_pos)
         
-        quote_text_widget.tag_config("bold", font=("Arial", 10, "bold"))
+        quote_text_widget.tag_config("bold", font=("Arial", 30, "bold"))
         quote_text_widget.config(state=tk.DISABLED)  # Make read-only after formatting
-        
-        # Open image button
-        def make_open_button(match_data):
-            btn = tk.Button(
-                row_frame,
-                text="📷 Deschide",
-                font=("Arial", 9),
-                bg=COLOR_BOOK,
-                fg=COLOR_TEXT,
-                relief=tk.RAISED,
-                padx=10,
-                pady=5,
-                cursor="hand2",
-                command=lambda: open_match_image(match_data)
-            )
-            return btn
-        
-        open_btn = make_open_button(match)
-        open_btn.pack(side=tk.LEFT, padx=5, pady=5)
     
     # Update scroll region
     results_canvas.update_idletasks()
@@ -1150,7 +1196,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             command=lambda: export_selected_to_docx(search_term),
             bg=COLOR_SHELF,
             fg="white",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 36, "bold"),
             relief=tk.RAISED,
             padx=20,
             pady=10,
@@ -1368,22 +1414,20 @@ def on_generate():
 
 
 def _get_text_with_checkmark(text: str, add_checkmark: bool, tree_width: int = 600) -> str:
-    """Get text with checkmark aligned to the right.
+    """Get text with checkmark on the left before the title.
     tree_width: width of the tree column in pixels (default 600)"""
-    # Remove existing checkmark if present
-    text = text.rstrip()
-    if "✓" in text:
-        # Remove checkmark and any trailing spaces before it
+    # Remove existing checkmark if present (check both left and right)
+    text = text.strip()
+    if text.startswith("✓"):
+        # Remove checkmark from the left
+        text = text[1:].strip()
+    elif "✓" in text:
+        # Remove checkmark from the right (for backward compatibility)
         text = text.split("✓")[0].rstrip()
     
     if add_checkmark:
-        # Use a large fixed spacing to push checkmark to the right edge
-        # For a 600px wide column, approximately 80-100 characters fit
-        # Use a generous spacing that works for most folder name lengths
-        # Calculate based on tree width: ~7 pixels per character average
-        target_width = int(tree_width / 7)  # Approximate characters that fit
-        spaces_needed = max(80, target_width - len(text))  # Minimum 80 spaces for alignment
-        return text + " " * spaces_needed + "✓"
+        # Put checkmark on the left before the text
+        return "✓ " + text
     return text
 
 
@@ -1634,14 +1678,44 @@ COLOR_BOOK = "#D4A574"  # Tan like book covers
 COLOR_TEXT = "#2C1810"  # Dark brown text
 COLOR_ACCENT = "#A0522D"  # Sienna accent
 
+# Create scrollable frame for the entire window
+main_canvas = tk.Canvas(root, bg=COLOR_BACKGROUND, highlightthickness=0)
+main_scrollbar = ttk.Scrollbar(root, orient="vertical", command=main_canvas.yview)
+scrollable_main_frame = tk.Frame(main_canvas, bg=COLOR_BACKGROUND)
+
+scrollable_main_frame.bind(
+    "<Configure>",
+    lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+)
+
+main_canvas.create_window((0, 0), window=scrollable_main_frame, anchor="nw")
+main_canvas.configure(yscrollcommand=main_scrollbar.set)
+
+# Pack canvas and scrollbar
+main_canvas.pack(side="left", fill="both", expand=True)
+main_scrollbar.pack(side="right", fill="y")
+
+# Bind mousewheel to canvas
+def _on_main_mousewheel(event):
+    main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+main_canvas.bind_all("<MouseWheel>", _on_main_mousewheel)
+
+# Update canvas width when scrollable frame changes
+def configure_main_canvas_width(event):
+    canvas_width = event.width
+    main_canvas.itemconfig(main_canvas.find_all()[0], width=canvas_width)
+
+scrollable_main_frame.bind("<Configure>", lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
+main_canvas.bind("<Configure>", configure_main_canvas_width)
+
 # Header frame with library title
-header_frame = tk.Frame(root, bg=COLOR_BACKGROUND, pady=15)
+header_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND, pady=15)
 header_frame.pack(fill=tk.X)
 
 title_label = tk.Label(
     header_frame,
     text="📚 BIBLIOTECA 📚",
-    font=("Times", 24, "bold"),
+    font=("Times", 64, "bold"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 )
@@ -1650,14 +1724,14 @@ title_label.pack()
 subtitle_label = tk.Label(
     header_frame,
     text="Selectează Biblioteca, Rafturi sau Volume pentru căutare",
-    font=("Times", 11, "italic"),
+    font=("Times", 32, "italic"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_ACCENT
 )
 subtitle_label.pack(pady=(5, 0))
 
 # Biblioteca selection section
-biblioteca_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
+biblioteca_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
 biblioteca_frame.pack(padx=15, pady=10, fill=tk.X)
 
 select_folder_button = tk.Button(
@@ -1666,7 +1740,7 @@ select_folder_button = tk.Button(
     command=on_select_folder,
     bg=COLOR_SHELF,
     fg="white",
-    font=("Arial", 11, "bold"),
+    font=("Arial", 32, "bold"),
     relief=tk.RAISED,
     padx=15,
     pady=8,
@@ -1679,14 +1753,14 @@ folder_label = tk.Label(
     text="Nicio bibliotecă selectată",
     fg=COLOR_ACCENT,
     bg=COLOR_BACKGROUND,
-    font=("Arial", 10, "italic"),
+    font=("Arial", 30, "italic"),
     anchor="w"
 )
 folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
 # Library tree frame with scrollbars
-tree_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
-tree_frame.pack(padx=15, pady=10, fill=tk.BOTH, expand=True)
+tree_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+tree_frame.pack(padx=15, pady=10, fill=tk.X)
 
 # Create scrollbars
 v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
@@ -1705,6 +1779,11 @@ library_tree.column("#0", width=600, minwidth=200)
 library_tree.column("path", width=0, stretch=False)  # Hidden column
 library_tree.column("type", width=0, stretch=False)  # Hidden column
 
+# Configure treeview font and row height
+style = ttk.Style()
+style.configure("Treeview", font=("Arial", 30), rowheight=60)
+style.configure("Treeview.Heading", font=("Arial", 30, "bold"))
+
 # Configure tags for styling
 library_tree.tag_configure("folder", background="#F0E0C0", foreground=COLOR_TEXT)
 library_tree.tag_configure("end_folder", background="#E8D5B7", foreground=COLOR_TEXT)  # Folders with OCR
@@ -1722,7 +1801,7 @@ library_tree.bind("<Button-1>", on_tree_click)
 library_tree.bind("<Double-1>", lambda e: None)  # Prevent default double-click behavior
 
 # Selection control buttons
-selection_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
+selection_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
 selection_frame.pack(padx=15, pady=5, fill=tk.X)
 
 def select_all_items():
@@ -1768,7 +1847,7 @@ select_all_btn = tk.Button(
     command=select_all_items,
     bg=COLOR_BOOK,
     fg=COLOR_TEXT,
-    font=("Arial", 9),
+    font=("Arial", 28),
     relief=tk.RAISED,
     padx=10,
     pady=5,
@@ -1782,7 +1861,7 @@ deselect_all_btn = tk.Button(
     command=deselect_all_items,
     bg=COLOR_BOOK,
     fg=COLOR_TEXT,
-    font=("Arial", 9),
+    font=("Arial", 28),
     relief=tk.RAISED,
     padx=10,
     pady=5,
@@ -1802,13 +1881,13 @@ deselect_all_btn.pack(side=tk.LEFT)
 # instructions_label.pack()
 
 # Search section
-search_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
+search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
 search_frame.pack(padx=15, pady=10, fill=tk.X)
 
 tk.Label(
     search_frame,
     text="Căutare:",
-    font=("Arial", 11, "bold"),
+    font=("Arial", 32, "bold"),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(anchor="w", pady=(0, 5))
@@ -1816,20 +1895,20 @@ tk.Label(
 entry = tk.Entry(
     search_frame,
     width=60,
-    font=("Arial", 11),
+    font=("Arial", 32),
     relief=tk.SUNKEN,
     bd=2
 )
 entry.pack(fill=tk.X, pady=5)
 
 # Word span section
-word_span_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
+word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
 word_span_frame.pack(padx=15, pady=5, fill=tk.X)
 
 tk.Label(
     word_span_frame,
     text="Span cuvinte:",
-    font=("Arial", 10),
+    font=("Arial", 30),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(side=tk.LEFT, padx=(0, 10))
@@ -1844,18 +1923,18 @@ word_span_dropdown = ttk.Combobox(
     values=word_span_options,
     state="readonly",
     width=15,
-    font=("Arial", 10)
+    font=("Arial", 30)
 )
 word_span_dropdown.pack(side=tk.LEFT)
 
 # Word order section
-word_order_frame = tk.Frame(root, bg=COLOR_BACKGROUND)
+word_order_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
 word_order_frame.pack(padx=15, pady=5, fill=tk.X)
 
 tk.Label(
     word_order_frame,
     text="Ordinea cuvintelor:",
-    font=("Arial", 10),
+    font=("Arial", 30),
     bg=COLOR_BACKGROUND,
     fg=COLOR_TEXT
 ).pack(side=tk.LEFT, padx=(0, 10))
@@ -1870,18 +1949,18 @@ word_order_dropdown = ttk.Combobox(
     values=word_order_options,
     state="readonly",
     width=15,
-    font=("Arial", 10)
+    font=("Arial", 30)
 )
 word_order_dropdown.pack(side=tk.LEFT)
 
 # Generate button
 button = tk.Button(
-    root,
+    scrollable_main_frame,
     text="🔍 Caută",
     command=on_generate,
     bg=COLOR_SHELF,
     fg="white",
-    font=("Arial", 12, "bold"),
+    font=("Arial", 36, "bold"),
     relief=tk.RAISED,
     padx=20,
     pady=10,
@@ -1894,6 +1973,7 @@ results_window = None
 results_scrollable_frame = None
 results_canvas = None
 export_button_frame = None
+results_title_label = None
 match_checkboxes = []  # List of (match, checkbox_var) tuples for export
 
 if __name__ == "__main__":
