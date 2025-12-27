@@ -5,8 +5,12 @@ import sys
 import re
 import subprocess
 import platform
+import requests
+import time
+from typing import List, Set, Dict
 from pathlib import Path
-from rapidfuzz import fuzz, distance
+from rapidfuzz import fuzz
+from rapidfuzz.distance import Levenshtein
 from docx import Document
 
 
@@ -142,22 +146,138 @@ def words_match(query_word: str, text_word: str) -> bool:
         return False
     
     # Calculate Levenshtein distance using rapidfuzz
-    lev_distance = distance(query_word, text_word)
+    lev_distance = Levenshtein.distance(query_word, text_word)
     
     # Determine allowed distance based on query word length
     # Use the longer of the two words to determine the threshold
     max_length = max(len(query_word), len(text_word))
     
     # For words 4-7 characters, allow 1 character difference
-    if max_length >= 4 and max_length <= 7:
+    if max_length >= 4:
         return lev_distance <= 1
     
-    # For words 8 characters or more, allow 2 character differences
-    if max_length >= 8:
-        return lev_distance <= 2
     
     # Fallback (shouldn't reach here, but handle it)
     return lev_distance <= 1
+
+
+def get_inflected_forms_from_dex(word: str, cache: Dict[str, Set[str]] = None) -> Set[str]:
+    """
+    Obține formele flexionare ale unui cuvânt folosind API-ul DEX online.
+    
+    Args:
+        word: Cuvântul pentru care se caută forme flexionare
+        cache: Dicționar pentru cache (opțional, pentru a evita cereri duplicate)
+    
+    Returns:
+        Set de forme flexionare (include și cuvântul original)
+    """
+    if cache is None:
+        cache = {}
+    
+    word_lower = word.lower().strip()
+    
+    # Verifică cache-ul
+    if word_lower in cache:
+        return cache[word_lower]
+    
+    forms = {word_lower}  # Include forma originală
+    
+    try:
+        # Endpoint API DEX online pentru lexem
+        url = f"https://dexonline.ro/api/lexem/{word_lower}"
+        
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extrage formele flexionare din răspuns
+            # Structura poate varia - ajustează în funcție de răspunsul real
+            if isinstance(data, dict):
+                # Caută câmpuri care conțin forme flexionare
+                if 'flexiuni' in data:
+                    flexiuni = data['flexiuni']
+                    if isinstance(flexiuni, list):
+                        for form in flexiuni:
+                            if isinstance(form, str):
+                                forms.add(form.lower())
+                            elif isinstance(form, dict) and 'form' in form:
+                                forms.add(form['form'].lower())
+                
+                # Poate fi și în alt format
+                if 'forms' in data:
+                    forms_data = data['forms']
+                    if isinstance(forms_data, list):
+                        for form in forms_data:
+                            if isinstance(form, str):
+                                forms.add(form.lower())
+                            elif isinstance(form, dict) and 'form' in form:
+                                forms.add(form['form'].lower())
+                
+                # Sau în definiții
+                if 'definitions' in data:
+                    for def_item in data['definitions']:
+                        if isinstance(def_item, dict) and 'flexiuni' in def_item:
+                            flexiuni = def_item['flexiuni']
+                            if isinstance(flexiuni, list):
+                                for form in flexiuni:
+                                    if isinstance(form, str):
+                                        forms.add(form.lower())
+                
+                # Caută și în structura de lexem
+                if 'lexem' in data:
+                    lexem_data = data['lexem']
+                    if isinstance(lexem_data, dict) and 'flexiuni' in lexem_data:
+                        flexiuni = lexem_data['flexiuni']
+                        if isinstance(flexiuni, list):
+                            for form in flexiuni:
+                                if isinstance(form, str):
+                                    forms.add(form.lower())
+            
+        # Rate limiting - așteaptă puțin între cereri
+        time.sleep(0.1)
+        
+    except requests.exceptions.RequestException as e:
+        # Dacă API-ul nu funcționează, returnează doar forma originală
+        pass  # Fail silently - use original word only
+    except Exception as e:
+        pass  # Fail silently - use original word only
+    
+    # Salvează în cache
+    cache[word_lower] = forms
+    
+    return forms
+
+
+def expand_search_terms_with_inflections(query_text: str, cache: Dict[str, Set[str]] = None) -> List[str]:
+    """
+    Extinde termenii de căutare cu formele lor flexionare.
+    
+    Args:
+        query_text: Textul de căutare original
+        cache: Cache pentru forme flexionare (opțional)
+    
+    Returns:
+        Listă de cuvinte extinse (original + forme flexionare)
+    """
+    words = query_text.split()
+    expanded_words = []
+    
+    for word in words:
+        # Obține forme flexionare
+        inflected_forms = get_inflected_forms_from_dex(word, cache)
+        expanded_words.extend(inflected_forms)
+    
+    # Returnează lista unică, păstrând ordinea
+    seen = set()
+    result = []
+    for word in expanded_words:
+        if word not in seen:
+            seen.add(word)
+            result.append(word)
+    
+    return result
 
 
 def extract_page_number_from_image(img_name: str) -> str:
@@ -414,14 +534,30 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     return (found_all, best_score, best_start_line, best_end_line, best_matched_words)
 
 
-def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, word_span: int = None, exact_order: bool = True):
+def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, word_span: int = None, exact_order: bool = True, use_inflections: bool = True):
     """
     Caută query_text în toate paginile și returnează toate match-urile cu score >= threshold.
     word_span: numărul de cuvinte în care să caute (None = întreaga pagină)
     exact_order: True = cuvintele trebuie să apară în ordinea exactă, False = orice ordine
+    use_inflections: Dacă True, extinde căutarea cu forme flexionare din DEX online
     """
-    norm_query = normalize_text(query_text)
-    query_words = norm_query.split()
+    # Cache pentru forme flexionare (partajat între apeluri)
+    if not hasattr(search_text_in_pages, 'inflection_cache'):
+        search_text_in_pages.inflection_cache = {}
+    
+    # Extinde cuvintele cu forme flexionare dacă este activat
+    if use_inflections:
+        expanded_words = expand_search_terms_with_inflections(
+            query_text, 
+            search_text_in_pages.inflection_cache
+        )
+        # Creează un query extins pentru normalizare
+        expanded_query = " ".join(expanded_words)
+        norm_query = normalize_text(expanded_query)
+        query_words = norm_query.split()
+    else:
+        norm_query = normalize_text(query_text)
+        query_words = norm_query.split()
     
     if len(query_words) < 1:
         raise ValueError("Query must have at least 1 word")
@@ -1447,6 +1583,26 @@ def _find_all_volumes(folder: Path, volumes_list: list):
         _find_all_volumes(subfolder, volumes_list)
 
 
+def _deselect_parent_if_needed(item):
+    """Deselect parent when any child is deselected.
+    Recursively propagates up the tree."""
+    parent = library_tree.parent(item)
+    # If no parent (root level), stop
+    if not parent or parent == "":
+        return
+    
+    # Deselect the parent immediately (if it's selected)
+    parent_tags = list(library_tree.item(parent, "tags"))
+    if "selected" in parent_tags:
+        parent_tags.remove("selected")
+        tree_width = library_tree.column("#0", "width") or 600
+        parent_text = library_tree.item(parent, "text")
+        new_text = _get_text_with_checkmark(parent_text, False, tree_width)
+        library_tree.item(parent, text=new_text, tags=parent_tags)
+        # Recursively deselect parent's parent
+        _deselect_parent_if_needed(parent)
+
+
 def on_tree_click(event):
     """Handle clicks on tree items (toggle selection with cascading to children)."""
     region = library_tree.identify_region(event.x, event.y)
@@ -1458,6 +1614,9 @@ def on_tree_click(event):
             should_select = "selected" not in tags
             # Apply selection state to this item and all its children recursively
             _select_item_recursive(item, should_select)
+            # If item was deselected, check if parent should also be deselected
+            if not should_select:
+                _deselect_parent_if_needed(item)
             # Update the selected volumes list
             update_selected_volumes()
 
