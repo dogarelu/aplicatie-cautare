@@ -118,22 +118,10 @@ def normalize_text(s: str) -> str:
     return s
 
 
-def words_match(query_word: str, text_word: str) -> bool:
+def words_match_simple(query_word: str, text_word: str) -> bool:
     """
-    Check if two words match according to fuzzy matching rules:
-    - If word length <= 3: must be exact match
-    - If word length 4-7: allow 1 character difference (Levenshtein distance <= 1)
-    - If word length >= 8: allow 2 character differences (Levenshtein distance <= 2)
-    - Similar letters/variants don't count as different (already normalized)
-    
-    Args:
-        query_word: The search word (normalized)
-        text_word: The word from text to match against (normalized)
-    
-    Returns:
-        True if words match according to the rules
+    Simple word matching without hyphen handling (used internally).
     """
-    # Both words should already be normalized (similar letters handled)
     if not query_word or not text_word:
         return False
     
@@ -156,9 +144,60 @@ def words_match(query_word: str, text_word: str) -> bool:
     if max_length >= 4:
         return lev_distance <= 1
     
-    
     # Fallback (shouldn't reach here, but handle it)
     return lev_distance <= 1
+
+
+def words_match(query_word: str, text_word: str) -> bool:
+    """
+    Check if two words match according to fuzzy matching rules:
+    - If word length <= 3: must be exact match
+    - If word length 4-7: allow 1 character difference (Levenshtein distance <= 1)
+    - If word length >= 8: allow 2 character differences (Levenshtein distance <= 2)
+    - Similar letters/variants don't count as different (already normalized)
+    - Handles hyphenated words: matches parts before/after hyphens
+    
+    Args:
+        query_word: The search word (normalized)
+        text_word: The word from text to match against (normalized)
+    
+    Returns:
+        True if words match according to the rules
+    """
+    # Both words should already be normalized (similar letters handled)
+    if not query_word or not text_word:
+        return False
+    
+    # Exact match always works
+    if query_word == text_word:
+        return True
+    
+    # Handle hyphenated words: check if query matches any part of hyphenated text word
+    # e.g., "calu" should match "calu-m" (part before hyphen)
+    if '-' in text_word:
+        text_parts = text_word.split('-')
+        for part in text_parts:
+            if part and words_match_simple(query_word, part):
+                return True
+    
+    # Handle hyphenated query: check if any part of hyphenated query matches text word
+    # e.g., "intr-o" should match "intro"
+    if '-' in query_word:
+        query_parts = query_word.split('-')
+        for part in query_parts:
+            if part and words_match_simple(part, text_word):
+                return True
+    
+    # Also check if removing hyphens makes them match
+    # e.g., "intro" should match "intr-o"
+    text_word_no_hyphen = text_word.replace('-', '')
+    query_word_no_hyphen = query_word.replace('-', '')
+    if text_word_no_hyphen and query_word_no_hyphen:
+        if words_match_simple(query_word_no_hyphen, text_word_no_hyphen):
+            return True
+    
+    # Standard matching for non-hyphenated words
+    return words_match_simple(query_word, text_word)
 
 
 def get_inflected_forms_from_dex(word: str, cache: Dict[str, Set[str]] = None) -> Set[str]:
@@ -1135,7 +1174,46 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Quote with bolded search words - use the exact matched fragment if available
         if "matched_fragment" in match and match["matched_fragment"]:
             # Use the exact matched fragment that was found during search
-            quote_text = match["matched_fragment"]
+            matched_fragment = match["matched_fragment"]
+            
+            # Add 4 words before and 4 words after the matched fragment
+            if "page_lines" in match and match["page_lines"]:
+                # Get all words from page lines around the match area
+                page_lines = match["page_lines"]
+                match_start_line = match.get("match_start_line_idx", 0)
+                match_end_line = match.get("match_end_line_idx", match_start_line + 1)
+                
+                # Get context lines (a few lines before and after the match)
+                context_start = max(0, match_start_line - 2)
+                context_end = min(len(page_lines), match_end_line + 2)
+                context_lines = page_lines[context_start:context_end]
+                
+                # Convert context lines to words
+                context_text = " ".join(context_lines)
+                all_words = context_text.split()
+                matched_words = matched_fragment.split()
+                
+                # Find where the matched fragment appears in all_words (using normalized comparison)
+                matched_start_idx = None
+                norm_matched_words = [normalize_text(w) for w in matched_words]
+                for i in range(len(all_words) - len(matched_words) + 1):
+                    # Compare normalized versions
+                    norm_window = [normalize_text(w) for w in all_words[i:i+len(matched_words)]]
+                    if norm_window == norm_matched_words:
+                        matched_start_idx = i
+                        break
+                
+                if matched_start_idx is not None:
+                    # Extract 4 words before and 4 words after
+                    start_idx = max(0, matched_start_idx - 4)
+                    end_idx = min(len(all_words), matched_start_idx + len(matched_words) + 4)
+                    quote_text = " ".join(all_words[start_idx:end_idx])
+                else:
+                    # Fallback: use matched fragment if we can't find it in context
+                    quote_text = matched_fragment
+            else:
+                # Fallback: use matched fragment if no page_lines available
+                quote_text = matched_fragment
         else:
             # Fallback: extract from snippet (for backward compatibility)
             full_quote_text = " ".join(match["snippet"])
