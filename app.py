@@ -413,8 +413,15 @@ def find_match_context(query_text: str, page_lines: list, before: int = 2, after
         if not norm_line:
             continue
         norm_line_words = norm_line.split()
-        words_found = sum(1 for query_word in query_words 
-                         if any(words_match(query_word, text_word) for text_word in norm_line_words))
+        # Ensure each query word matches a different text word
+        matched_word_indices = set()
+        words_found = 0
+        for query_word in query_words:
+            for idx, text_word in enumerate(norm_line_words):
+                if idx not in matched_word_indices and words_match(query_word, text_word):
+                    matched_word_indices.add(idx)
+                    words_found += 1
+                    break
         if words_found > 0:
             score = fuzz.partial_ratio(norm_query, norm_line)
             if score > best_match_score:
@@ -483,13 +490,17 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
         # Check word order if exact_order is True
         if exact_order:
             # Check if words appear in exact order
+            # Track which span word indices have been matched to ensure each query word matches a different text word
+            matched_indices = set()
             word_indices = []
             for query_word in query_words:
                 # Find matching word in span_words using fuzzy matching
                 found_idx = None
                 for idx, span_word in enumerate(span_words):
-                    if words_match(query_word, span_word):
+                    # Only match if this word hasn't been matched yet and it matches the query word
+                    if idx not in matched_indices and words_match(query_word, span_word):
                         found_idx = idx
+                        matched_indices.add(idx)  # Mark this word as used
                         break
                 
                 if found_idx is not None:
@@ -508,9 +519,21 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
             else:
                 words_found = 0
         else:
-            # Random order: just check if all words are present
-            words_found = sum(1 for query_word in query_words 
-                             if any(words_match(query_word, span_word) for span_word in span_words))
+            # Random order: check if all words are present, but each query word must match a different text word
+            matched_indices = set()
+            words_found = 0
+            for query_word in query_words:
+                found = False
+                for idx, span_word in enumerate(span_words):
+                    # Only match if this word hasn't been matched yet and it matches the query word
+                    if idx not in matched_indices and words_match(query_word, span_word):
+                        matched_indices.add(idx)  # Mark this word as used
+                        words_found += 1
+                        found = True
+                        break
+                if not found:
+                    # This query word couldn't be matched to a unique text word
+                    break
         
         if words_found == 0:
             continue
@@ -608,8 +631,15 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
         
         score = fuzz.partial_ratio(norm_query, norm_page)
         norm_page_words = norm_page.split()
-        words_found = sum(1 for query_word in query_words 
-                         if any(words_match(query_word, text_word) for text_word in norm_page_words))
+        # Ensure each query word matches a different text word
+        matched_word_indices = set()
+        words_found = 0
+        for query_word in query_words:
+            for idx, text_word in enumerate(norm_page_words):
+                if idx not in matched_word_indices and words_match(query_word, text_word):
+                    matched_word_indices.add(idx)
+                    words_found += 1
+                    break
         word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
         
         if words_found == len(query_words):
@@ -647,8 +677,15 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
                 if not norm_line:
                     continue
                 norm_line_words = norm_line.split()
-                words_found = sum(1 for query_word in query_words 
-                                 if any(words_match(query_word, text_word) for text_word in norm_line_words))
+                # Ensure each query word matches a different text word
+                matched_word_indices = set()
+                words_found = 0
+                for query_word in query_words:
+                    for idx, text_word in enumerate(norm_line_words):
+                        if idx not in matched_word_indices and words_match(query_word, text_word):
+                            matched_word_indices.add(idx)
+                            words_found += 1
+                            break
                 if words_found > 0:
                     score = fuzz.partial_ratio(norm_query, norm_line)
                     if score > best_match_score:
