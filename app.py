@@ -6,7 +6,7 @@ import re
 import subprocess
 import platform
 from pathlib import Path
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, distance
 from docx import Document
 
 
@@ -117,8 +117,9 @@ def normalize_text(s: str) -> str:
 def words_match(query_word: str, text_word: str) -> bool:
     """
     Check if two words match according to fuzzy matching rules:
-    - If word length > 3: allow 1 character difference (edit distance <= 1)
     - If word length <= 3: must be exact match
+    - If word length 4-7: allow 1 character difference (Levenshtein distance <= 1)
+    - If word length >= 8: allow 2 character differences (Levenshtein distance <= 2)
     - Similar letters/variants don't count as different (already normalized)
     
     Args:
@@ -140,32 +141,23 @@ def words_match(query_word: str, text_word: str) -> bool:
     if len(query_word) <= 3 or len(text_word) <= 3:
         return False
     
-    # For words longer than 3 characters, allow 1 character difference
-    # Calculate Levenshtein distance
-    if abs(len(query_word) - len(text_word)) > 1:
-        return False
+    # Calculate Levenshtein distance using rapidfuzz
+    lev_distance = distance(query_word, text_word)
     
-    # Check if edit distance is <= 1
-    # Simple check: if one is substring of the other with 1 char diff, or
-    # they differ by exactly 1 character
-    if len(query_word) == len(text_word):
-        # Same length: check if they differ by exactly 1 character
-        diffs = sum(1 for a, b in zip(query_word, text_word) if a != b)
-        return diffs <= 1
-    elif len(query_word) == len(text_word) + 1:
-        # query_word is 1 char longer: check if text_word is a substring
-        for i in range(len(query_word)):
-            if query_word[:i] + query_word[i+1:] == text_word:
-                return True
-        return False
-    elif len(text_word) == len(query_word) + 1:
-        # text_word is 1 char longer: check if query_word is a substring
-        for i in range(len(text_word)):
-            if text_word[:i] + text_word[i+1:] == query_word:
-                return True
-        return False
+    # Determine allowed distance based on query word length
+    # Use the longer of the two words to determine the threshold
+    max_length = max(len(query_word), len(text_word))
     
-    return False
+    # For words 4-7 characters, allow 1 character difference
+    if max_length >= 4 and max_length <= 7:
+        return lev_distance <= 1
+    
+    # For words 8 characters or more, allow 2 character differences
+    if max_length >= 8:
+        return lev_distance <= 2
+    
+    # Fallback (shouldn't reach here, but handle it)
+    return lev_distance <= 1
 
 
 def extract_page_number_from_image(img_name: str) -> str:
