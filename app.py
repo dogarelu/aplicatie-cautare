@@ -20,6 +20,7 @@ import threading
 import multiprocessing
 
 # Configure multiprocessing to prevent processes showing in dock (macOS)
+# And prevent GUI initialization in worker processes (Windows)
 if platform.system() == "Darwin":  # macOS
     # Set multiprocessing start method early to prevent processes showing in dock
     try:
@@ -27,7 +28,14 @@ if platform.system() == "Darwin":  # macOS
     except RuntimeError:
         # Already set, ignore
         pass
-# Windows uses 'spawn' by default, so no special handling needed
+elif platform.system() == "Windows":
+    # Windows uses 'spawn' by default, but we need to ensure it's set
+    # This prevents worker processes from re-importing and creating GUI windows
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+    except RuntimeError:
+        # Already set, ignore
+        pass
 
 
 # Global variable to store selected root folder and selected paths
@@ -1843,6 +1851,7 @@ def find_image_path(volume_path: Path, image_filename: str) -> Path:
 def on_select_folder():
     """Handle the Select Biblioteca button click."""
     global selected_root_folder, selected_paths, selected_volumes
+    global folder_label, library_tree
     
     # Get last library directory or use home directory
     last_dir = get_last_library_dir()
@@ -2532,6 +2541,7 @@ def export_selected_to_docx(search_term: str):
 
 def on_generate():
     """Handle the Search button click."""
+    global entry, word_span_var, word_order_var, button
     search_term = entry.get().strip()
     words = search_term.split()
 
@@ -2621,6 +2631,7 @@ def populate_library_tree(biblioteca_path: str):
     """Populate the library tree dynamically from folder structure.
     Marks folders containing ocr.txt as end folders (leaf nodes).
     All items are selected by default."""
+    global library_tree
     library_tree.delete(*library_tree.get_children())
     root_path = Path(biblioteca_path)
     
@@ -2642,6 +2653,7 @@ def populate_library_tree(biblioteca_path: str):
 
 def _build_tree_recursive(folder: Path, parent_item):
     """Recursively build tree structure, marking folders with OCR as end folders."""
+    global library_tree
     # Check if this folder has OCR files
     has_ocr = folder_has_ocr(folder)
     
@@ -2813,199 +2825,9 @@ def _find_all_volumes(folder: Path, volumes_list: list):
         _find_all_volumes(subfolder, volumes_list)
 
 
-def _deselect_parent_if_needed(item):
-    """Deselect parent when any child is deselected.
-    Recursively propagates up the tree."""
-    parent = library_tree.parent(item)
-    # If no parent (root level), stop
-    if not parent or parent == "":
-        return
-    
-    # Deselect the parent immediately (if it's selected)
-    parent_tags = list(library_tree.item(parent, "tags"))
-    if "selected" in parent_tags:
-        parent_tags.remove("selected")
-        tree_width = library_tree.column("#0", "width") or 600
-        parent_text = library_tree.item(parent, "text")
-        new_text = _get_text_with_checkmark(parent_text, False, tree_width)
-        library_tree.item(parent, text=new_text, tags=parent_tags)
-        # Recursively deselect parent's parent
-        _deselect_parent_if_needed(parent)
-
-
-def on_tree_click(event):
-    """Handle clicks on tree items (toggle selection with cascading to children)."""
-    region = library_tree.identify_region(event.x, event.y)
-    if region == "cell" or region == "tree":
-        item = library_tree.identify_row(event.y)
-        if item:
-            tags = list(library_tree.item(item, "tags"))
-            # Determine new selection state (toggle)
-            should_select = "selected" not in tags
-            # Apply selection state to this item and all its children recursively
-            _select_item_recursive(item, should_select)
-            # If item was deselected, check if parent should also be deselected
-            if not should_select:
-                _deselect_parent_if_needed(item)
-            # Update the selected volumes list
-            update_selected_volumes()
-
-
-# Create main window with library theme
-root = tk.Tk()
-root.title("Biblioteca - Căutare Documente")
-root.minsize(600, 450)
-root.configure(bg="#F5E6D3")  # Warm beige background like old books
-
-# Library-themed colors
-COLOR_BACKGROUND = "#F5E6D3"
-COLOR_SHELF = "#8B4513"  # Brown like wooden shelves
-COLOR_BOOK = "#D4A574"  # Tan like book covers
-COLOR_TEXT = "#2C1810"  # Dark brown text
-COLOR_ACCENT = "#A0522D"  # Sienna accent
-
-# Create scrollable frame for the entire window
-main_canvas = tk.Canvas(root, bg=COLOR_BACKGROUND, highlightthickness=0)
-main_scrollbar = ttk.Scrollbar(root, orient="vertical", command=main_canvas.yview)
-scrollable_main_frame = tk.Frame(main_canvas, bg=COLOR_BACKGROUND)
-
-scrollable_main_frame.bind(
-    "<Configure>",
-    lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
-)
-
-main_canvas.create_window((0, 0), window=scrollable_main_frame, anchor="nw")
-main_canvas.configure(yscrollcommand=main_scrollbar.set)
-
-# Pack canvas and scrollbar
-main_canvas.pack(side="left", fill="both", expand=True)
-main_scrollbar.pack(side="right", fill="y")
-
-# Bind mousewheel to canvas
-def _on_main_mousewheel(event):
-    main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-main_canvas.bind_all("<MouseWheel>", _on_main_mousewheel)
-
-# Update canvas width when scrollable frame changes
-def configure_main_canvas_width(event):
-    canvas_width = event.width
-    main_canvas.itemconfig(main_canvas.find_all()[0], width=canvas_width)
-
-scrollable_main_frame.bind("<Configure>", lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
-main_canvas.bind("<Configure>", configure_main_canvas_width)
-
-# Header frame with library title
-header_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND, pady=15)
-header_frame.pack(fill=tk.X)
-
-title_label = tk.Label(
-    header_frame,
-    text="📚 BIBLIOTECA 📚",
-    font=("Times", 50, "bold"),
-    bg=COLOR_BACKGROUND,
-    fg=COLOR_TEXT
-)
-title_label.pack()
-
-subtitle_label = tk.Label(
-    header_frame,
-    text="Selectează Biblioteca, Rafturi sau Volume pentru căutare",
-    font=("Times", 26, "italic"),
-    bg=COLOR_BACKGROUND,
-    fg=COLOR_ACCENT
-)
-subtitle_label.pack(pady=(5, 0))
-
-# Biblioteca selection section
-biblioteca_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-biblioteca_frame.pack(padx=15, pady=10, fill=tk.X)
-
-select_folder_button = tk.Button(
-    biblioteca_frame,
-    text="📂 Selectează Biblioteca",
-    command=on_select_folder,
-    bg=COLOR_SHELF,
-    fg="white",
-    font=("Arial", 26, "bold"),
-    relief=tk.RAISED,
-    padx=15,
-    pady=8,
-    cursor="hand2"
-)
-select_folder_button.pack(side=tk.LEFT, padx=(0, 10))
-
-folder_label = tk.Label(
-    biblioteca_frame,
-    text="Nicio bibliotecă selectată",
-    fg=COLOR_ACCENT,
-    bg=COLOR_BACKGROUND,
-    font=("Arial", 24, "italic"),
-    anchor="w"
-)
-folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-# Library tree frame with scrollbars
-tree_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-tree_frame.pack(padx=15, pady=10, fill=tk.X)
-
-# Create scrollbars
-v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
-h_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL)
-
-# Create tree with library styling
-library_tree = ttk.Treeview(
-    tree_frame,
-    columns=("path", "type"),
-    show="tree",
-    yscrollcommand=v_scrollbar.set,
-    xscrollcommand=h_scrollbar.set,
-    selectmode="extended"
-)
-library_tree.column("#0", width=600, minwidth=200, stretch=True)
-library_tree.column("path", width=0, stretch=False)  # Hidden column
-library_tree.column("type", width=0, stretch=False)  # Hidden column
-
-# Configure treeview font and row height
-style = ttk.Style()
-style.configure("Treeview", font=("Arial", 24), rowheight=50)
-style.configure("Treeview.Heading", font=("Arial", 24, "bold"))
-
-# Configure tags for styling
-library_tree.tag_configure("folder", background="#F0E0C0", foreground=COLOR_TEXT)
-library_tree.tag_configure("end_folder", background="#E8D5B7", foreground=COLOR_TEXT)  # Folders with OCR
-library_tree.tag_configure("selected", background="#4A7C59", foreground="white")  # Green color for selected items
-
-# Pack scrollbars and tree
-v_scrollbar.config(command=library_tree.yview)
-h_scrollbar.config(command=library_tree.xview)
-v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-library_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-# Bind click events
-library_tree.bind("<Button-1>", on_tree_click)
-library_tree.bind("<Double-1>", lambda e: None)  # Prevent default double-click behavior
-
-# Selection control buttons
-selection_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-selection_frame.pack(padx=15, pady=5, fill=tk.X)
-
-def select_all_items():
-    """Select all items in the tree."""
-    for item in library_tree.get_children():
-        _select_item_recursive(item, True)
-    # Update the selected volumes list
-    update_selected_volumes()
-
-def deselect_all_items():
-    """Deselect all items in the tree."""
-    for item in library_tree.get_children():
-        _select_item_recursive(item, False)
-    # Update the selected volumes list
-    update_selected_volumes()
-
 def _select_item_recursive(item, select=True):
     """Recursively select or deselect an item and its children, updating text and colors."""
+    global library_tree
     tags = list(library_tree.item(item, "tags"))
     current_text = library_tree.item(item, "text")
     
@@ -3027,138 +2849,367 @@ def _select_item_recursive(item, select=True):
     for child in library_tree.get_children(item):
         _select_item_recursive(child, select)
 
-select_all_btn = tk.Button(
-    selection_frame,
-    text="✓ Selectează Tot",
-    command=select_all_items,
-    bg=COLOR_BOOK,
-    fg=COLOR_TEXT,
-    font=("Arial", 22),
-    relief=tk.RAISED,
-    padx=10,
-    pady=5,
-    cursor="hand2"
-)
-select_all_btn.pack(side=tk.LEFT, padx=(0, 10))
 
-deselect_all_btn = tk.Button(
-    selection_frame,
-    text="✗ Deselectează Tot",
-    command=deselect_all_items,
-    bg=COLOR_BOOK,
-    fg=COLOR_TEXT,
-    font=("Arial", 22),
-    relief=tk.RAISED,
-    padx=10,
-    pady=5,
-    cursor="hand2"
-)
-deselect_all_btn.pack(side=tk.LEFT)
+def _deselect_parent_if_needed(item):
+    """Deselect parent when any child is deselected.
+    Recursively propagates up the tree."""
+    global library_tree
+    parent = library_tree.parent(item)
+    # If no parent (root level), stop
+    if not parent or parent == "":
+        return
+    
+    # Deselect the parent immediately (if it's selected)
+    parent_tags = list(library_tree.item(parent, "tags"))
+    if "selected" in parent_tags:
+        parent_tags.remove("selected")
+        tree_width = library_tree.column("#0", "width") or 600
+        parent_text = library_tree.item(parent, "text")
+        new_text = _get_text_with_checkmark(parent_text, False, tree_width)
+        library_tree.item(parent, text=new_text, tags=parent_tags)
+        # Recursively deselect parent's parent
+        _deselect_parent_if_needed(parent)
 
-# Instructions label
-# instructions_label = tk.Label(
-#     root,
-#     text="💡 Click pe foldere pentru a le selecta/deselecta. Folderele cu 📗 conțin ocr.txt",
-#     font=("Arial", 9),
-#     bg=COLOR_BACKGROUND,
-#     fg=COLOR_ACCENT,
-#     pady=5
-# )
-# instructions_label.pack()
 
-# Search section
-search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-search_frame.pack(padx=15, pady=10, fill=tk.X)
+def on_tree_click(event):
+    """Handle clicks on tree items (toggle selection with cascading to children)."""
+    global library_tree
+    region = library_tree.identify_region(event.x, event.y)
+    if region == "cell" or region == "tree":
+        item = library_tree.identify_row(event.y)
+        if item:
+            tags = list(library_tree.item(item, "tags"))
+            # Determine new selection state (toggle)
+            should_select = "selected" not in tags
+            # Apply selection state to this item and all its children recursively
+            _select_item_recursive(item, should_select)
+            # If item was deselected, check if parent should also be deselected
+            if not should_select:
+                _deselect_parent_if_needed(item)
+            # Update the selected volumes list
+            update_selected_volumes()
 
-tk.Label(
-    search_frame,
-    text="Căutare:",
-    font=("Arial", 26, "bold"),
-    bg=COLOR_BACKGROUND,
-    fg=COLOR_TEXT
-).pack(anchor="w", pady=(0, 5))
 
-entry = tk.Entry(
-    search_frame,
-    font=("Arial", 26),
-    relief=tk.SUNKEN,
-    bd=2
-)
-entry.pack(fill=tk.X, pady=5)
-
-# Word span section
-word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-word_span_frame.pack(padx=15, pady=5, fill=tk.X)
-
-tk.Label(
-    word_span_frame,
-    text="Span cuvinte:",
-    font=("Arial", 24),
-    bg=COLOR_BACKGROUND,
-    fg=COLOR_TEXT
-).pack(side=tk.LEFT, padx=(0, 10))
-
-# Create dropdown for word span options
-word_span_var = tk.StringVar(value="10")  # Default to 10 words
-word_span_options = ["5", "10", "15", "20"]
-
-word_span_dropdown = ttk.Combobox(
-    word_span_frame,
-    textvariable=word_span_var,
-    values=word_span_options,
-    state="readonly",
-    font=("Arial", 36)
-)
-word_span_dropdown.pack(side=tk.LEFT)
-
-# Word order section
-word_order_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-word_order_frame.pack(padx=15, pady=5, fill=tk.X)
-
-tk.Label(
-    word_order_frame,
-    text="Ordinea cuvintelor:",
-    font=("Arial", 24),
-    bg=COLOR_BACKGROUND,
-    fg=COLOR_TEXT
-).pack(side=tk.LEFT, padx=(0, 10))
-
-# Create dropdown for word order options
-word_order_var = tk.StringVar(value="Exact")  # Default to exact order
-word_order_options = ["Exact", "Aleatorie"]
-
-word_order_dropdown = ttk.Combobox(
-    word_order_frame,
-    textvariable=word_order_var,
-    values=word_order_options,
-    state="readonly",
-    font=("Arial", 36)
-)
-word_order_dropdown.pack(side=tk.LEFT)
-
-# Generate button
-button = tk.Button(
-    scrollable_main_frame,
-    text="🔍 Caută",
-    command=on_generate,
-    bg=COLOR_SHELF,
-    fg="white",
-    font=("Arial", 30, "bold"),
-    relief=tk.RAISED,
-    padx=20,
-    pady=10,
-    cursor="hand2"
-)
-button.pack(pady=15)
-
-# Global variable to store results window
+# Global variables for GUI (initialized in create_gui function)
+root = None
+COLOR_BACKGROUND = "#F5E6D3"
+COLOR_SHELF = "#8B4513"
+COLOR_BOOK = "#D4A574"
+COLOR_TEXT = "#2C1810"
+COLOR_ACCENT = "#A0522D"
+main_canvas = None
+main_scrollbar = None
+scrollable_main_frame = None
+library_tree = None
+match_checkboxes = []
 results_window = None
 results_scrollable_frame = None
 results_canvas = None
 export_button_frame = None
 results_title_label = None
-match_checkboxes = []  # List of (match, checkbox_var) tuples for export
+entry = None
+word_span_var = None
+word_order_var = None
+folder_label = None
+select_folder_button = None
+button = None
+
+def create_gui():
+    """Create and initialize the GUI. Only called in main process."""
+    global root, COLOR_BACKGROUND, COLOR_SHELF, COLOR_BOOK, COLOR_TEXT, COLOR_ACCENT
+    global main_canvas, main_scrollbar, scrollable_main_frame
+    global library_tree, match_checkboxes
+    global results_window, results_scrollable_frame, results_canvas
+    global export_button_frame, results_title_label
+    global entry, word_span_var, word_order_var
+    global folder_label, select_folder_button, button
+    
+    # Create main window with library theme
+    root = tk.Tk()
+    root.title("Biblioteca - Căutare Documente")
+    root.minsize(600, 450)
+    root.configure(bg="#F5E6D3")  # Warm beige background like old books
+
+    # Library-themed colors
+    COLOR_BACKGROUND = "#F5E6D3"
+    COLOR_SHELF = "#8B4513"  # Brown like wooden shelves
+    COLOR_BOOK = "#D4A574"  # Tan like book covers
+    COLOR_TEXT = "#2C1810"  # Dark brown text
+    COLOR_ACCENT = "#A0522D"  # Sienna accent
+
+    # Create scrollable frame for the entire window
+    main_canvas = tk.Canvas(root, bg=COLOR_BACKGROUND, highlightthickness=0)
+    main_scrollbar = ttk.Scrollbar(root, orient="vertical", command=main_canvas.yview)
+    scrollable_main_frame = tk.Frame(main_canvas, bg=COLOR_BACKGROUND)
+
+    scrollable_main_frame.bind(
+        "<Configure>",
+        lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+    )
+
+    main_canvas.create_window((0, 0), window=scrollable_main_frame, anchor="nw")
+    main_canvas.configure(yscrollcommand=main_scrollbar.set)
+
+    # Pack canvas and scrollbar
+    main_canvas.pack(side="left", fill="both", expand=True)
+    main_scrollbar.pack(side="right", fill="y")
+
+    # Bind mousewheel to canvas
+    def _on_main_mousewheel(event):
+        main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+    main_canvas.bind_all("<MouseWheel>", _on_main_mousewheel)
+
+    # Update canvas width when scrollable frame changes
+    def configure_main_canvas_width(event):
+        canvas_width = event.width
+        main_canvas.itemconfig(main_canvas.find_all()[0], width=canvas_width)
+
+    scrollable_main_frame.bind("<Configure>", lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
+    main_canvas.bind("<Configure>", configure_main_canvas_width)
+
+    # Header frame with library title
+    header_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND, pady=15)
+    header_frame.pack(fill=tk.X)
+
+    title_label = tk.Label(
+        header_frame,
+        text="📚 BIBLIOTECA 📚",
+        font=("Times", 50, "bold"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    )
+    title_label.pack()
+
+    subtitle_label = tk.Label(
+        header_frame,
+        text="Selectează Biblioteca, Rafturi sau Volume pentru căutare",
+        font=("Times", 26, "italic"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_ACCENT
+    )
+    subtitle_label.pack(pady=(5, 0))
+
+    # Biblioteca selection section
+    biblioteca_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    biblioteca_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    select_folder_button = tk.Button(
+        biblioteca_frame,
+        text="📂 Selectează Biblioteca",
+        command=on_select_folder,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=("Arial", 26, "bold"),
+        relief=tk.RAISED,
+        padx=15,
+        pady=8,
+        cursor="hand2"
+    )
+    select_folder_button.pack(side=tk.LEFT, padx=(0, 10))
+
+    folder_label = tk.Label(
+        biblioteca_frame,
+        text="Nicio bibliotecă selectată",
+        fg=COLOR_ACCENT,
+        bg=COLOR_BACKGROUND,
+        font=("Arial", 24, "italic"),
+        anchor="w"
+    )
+    folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    # Library tree frame with scrollbars
+    tree_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    tree_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    # Create scrollbars
+    v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
+    h_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL)
+
+    # Create tree with library styling
+    library_tree = ttk.Treeview(
+        tree_frame,
+        columns=("path", "type"),
+        show="tree",
+        yscrollcommand=v_scrollbar.set,
+        xscrollcommand=h_scrollbar.set,
+        selectmode="extended"
+    )
+    library_tree.column("#0", width=600, minwidth=200, stretch=True)
+    library_tree.column("path", width=0, stretch=False)  # Hidden column
+    library_tree.column("type", width=0, stretch=False)  # Hidden column
+
+    # Configure treeview font and row height
+    style = ttk.Style()
+    style.configure("Treeview", font=("Arial", 24), rowheight=50)
+    style.configure("Treeview.Heading", font=("Arial", 24, "bold"))
+
+    # Configure tags for styling
+    library_tree.tag_configure("folder", background="#F0E0C0", foreground=COLOR_TEXT)
+    library_tree.tag_configure("end_folder", background="#E8D5B7", foreground=COLOR_TEXT)  # Folders with OCR
+    library_tree.tag_configure("selected", background="#4A7C59", foreground="white")  # Green color for selected items
+
+    # Pack scrollbars and tree
+    v_scrollbar.config(command=library_tree.yview)
+    h_scrollbar.config(command=library_tree.xview)
+    v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+    library_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # Bind click events
+    library_tree.bind("<Button-1>", on_tree_click)
+    library_tree.bind("<Double-1>", lambda e: None)  # Prevent default double-click behavior
+
+    # Selection control buttons
+    selection_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    selection_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    def select_all_items():
+        """Select all items in the tree."""
+        for item in library_tree.get_children():
+            _select_item_recursive(item, True)
+        # Update the selected volumes list
+        update_selected_volumes()
+
+    def deselect_all_items():
+        """Deselect all items in the tree."""
+        for item in library_tree.get_children():
+            _select_item_recursive(item, False)
+        # Update the selected volumes list
+        update_selected_volumes()
+
+    select_all_btn = tk.Button(
+        selection_frame,
+        text="✓ Selectează Tot",
+        command=select_all_items,
+        bg=COLOR_BOOK,
+        fg=COLOR_TEXT,
+        font=("Arial", 22),
+        relief=tk.RAISED,
+        padx=10,
+        pady=5,
+        cursor="hand2"
+    )
+    select_all_btn.pack(side=tk.LEFT, padx=(0, 10))
+
+    deselect_all_btn = tk.Button(
+        selection_frame,
+        text="✗ Deselectează Tot",
+        command=deselect_all_items,
+        bg=COLOR_BOOK,
+        fg=COLOR_TEXT,
+        font=("Arial", 22),
+        relief=tk.RAISED,
+        padx=10,
+        pady=5,
+        cursor="hand2"
+    )
+    deselect_all_btn.pack(side=tk.LEFT)
+
+    # Instructions label
+    # instructions_label = tk.Label(
+    #     root,
+    #     text="💡 Click pe foldere pentru a le selecta/deselecta. Folderele cu 📗 conțin ocr.txt",
+    #     font=("Arial", 9),
+    #     bg=COLOR_BACKGROUND,
+    #     fg=COLOR_ACCENT,
+    #     pady=5
+    # )
+    # instructions_label.pack()
+
+    # Search section
+    search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    search_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    tk.Label(
+        search_frame,
+        text="Căutare:",
+        font=("Arial", 26, "bold"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(anchor="w", pady=(0, 5))
+
+    entry = tk.Entry(
+        search_frame,
+        font=("Arial", 26),
+        relief=tk.SUNKEN,
+        bd=2
+    )
+    entry.pack(fill=tk.X, pady=5)
+
+    # Word span section
+    word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    word_span_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    tk.Label(
+        word_span_frame,
+        text="Span cuvinte:",
+        font=("Arial", 24),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    # Create dropdown for word span options
+    word_span_var = tk.StringVar(value="10")  # Default to 10 words
+    word_span_options = ["5", "10", "15", "20"]
+
+    word_span_dropdown = ttk.Combobox(
+        word_span_frame,
+        textvariable=word_span_var,
+        values=word_span_options,
+        state="readonly",
+        font=("Arial", 36)
+    )
+    word_span_dropdown.pack(side=tk.LEFT)
+
+    # Word order section
+    word_order_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    word_order_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    tk.Label(
+        word_order_frame,
+        text="Ordinea cuvintelor:",
+        font=("Arial", 24),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    # Create dropdown for word order options
+    word_order_var = tk.StringVar(value="Exact")  # Default to exact order
+    word_order_options = ["Exact", "Aleatorie"]
+
+    word_order_dropdown = ttk.Combobox(
+        word_order_frame,
+        textvariable=word_order_var,
+        values=word_order_options,
+        state="readonly",
+        font=("Arial", 36)
+    )
+    word_order_dropdown.pack(side=tk.LEFT)
+
+    # Generate button
+    button = tk.Button(
+        scrollable_main_frame,
+        text="🔍 Caută",
+        command=on_generate,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=("Arial", 30, "bold"),
+        relief=tk.RAISED,
+        padx=20,
+        pady=10,
+        cursor="hand2"
+    )
+    button.pack(pady=15)
+
+    # Global variable to store results window
+    results_window = None
+    results_scrollable_frame = None
+    results_canvas = None
+    export_button_frame = None
+    results_title_label = None
+    match_checkboxes = []  # List of (match, checkbox_var) tuples for export
 
 if __name__ == "__main__":
+    create_gui()
     root.mainloop()
 
