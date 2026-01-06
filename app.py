@@ -2569,44 +2569,49 @@ def on_generate():
         )
         return
 
-    try:
-        # Disable button during processing
-        button.config(state="disabled")
-        root.update()  # Update UI to show disabled state
-        
-        # Get word span value
-        word_span_value = word_span_var.get()
-        if word_span_value and word_span_value.isdigit() and int(word_span_value) > 0:
-            word_span = int(word_span_value)
-        else:
-            word_span = 10  # Default to 10 words if invalid
-        
-        # Get word order setting (exact or random)
-        order_value = word_order_var.get()
-        exact_order = (order_value == "Exact")
-        
-        # Run search only (no document generation)
-        matches = run_search_only(
-            query_text=search_term,
-            ocr_root=Path(selected_root_folder),
-            word_span=word_span,
-            threshold=DEFAULT_THRESHOLD,
-            selected_volumes=selected_volumes,
-            exact_order=exact_order
-        )
-        
-        # Display results in table with word_span limit
-        display_results_in_table(matches, search_term, word_span=word_span)
-        
-    except Exception as e:
-        # Show user-friendly error dialog
-        messagebox.showerror(
-            "Error",
-            f"Failed to search:\n{str(e)}"
-        )
-    finally:
-        # Re-enable button
-        button.config(state="normal")
+    # Disable button during processing
+    button.config(state="disabled")
+    root.update()  # Update UI to show disabled state
+    
+    # Get word span value
+    word_span_value = word_span_var.get()
+    if word_span_value and word_span_value.isdigit() and int(word_span_value) > 0:
+        word_span = int(word_span_value)
+    else:
+        word_span = 10  # Default to 10 words if invalid
+    
+    # Get word order setting (exact or random)
+    order_value = word_order_var.get()
+    exact_order = (order_value == "Exact")
+    
+    def search_worker():
+        """Run search in background thread."""
+        try:
+            # Run search only (no document generation)
+            matches = run_search_only(
+                query_text=search_term,
+                ocr_root=Path(selected_root_folder),
+                word_span=word_span,
+                threshold=DEFAULT_THRESHOLD,
+                selected_volumes=selected_volumes,
+                exact_order=exact_order
+            )
+            
+            # Update GUI in main thread
+            root.after(0, lambda: display_results_in_table(matches, search_term, word_span=word_span))
+            root.after(0, lambda: button.config(state="normal"))
+            
+        except Exception as e:
+            # Show error in main thread
+            root.after(0, lambda: messagebox.showerror(
+                "Error",
+                f"Failed to search:\n{str(e)}"
+            ))
+            root.after(0, lambda: button.config(state="normal"))
+    
+    # Start search in background thread
+    search_thread = threading.Thread(target=search_worker, daemon=True)
+    search_thread.start()
 
 
 def _get_text_with_checkmark(text: str, add_checkmark: bool, tree_width: int = 600) -> str:
@@ -3223,14 +3228,15 @@ def create_gui():
 
 if __name__ == "__main__":
     # Double-check we're in the main process before creating GUI
+    # On Windows with spawn, worker processes will have __name__ == "__main__"
+    # but they won't be the MainProcess
     try:
         if multiprocessing.current_process().name == 'MainProcess':
             create_gui()
             if root is not None:
                 root.mainloop()
     except Exception:
-        # Fallback: just run it
-        create_gui()
-        if root is not None:
-            root.mainloop()
+        # Don't create GUI on exception - this prevents worker processes
+        # from creating windows if the check fails
+        pass
 
