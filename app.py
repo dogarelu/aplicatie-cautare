@@ -1551,7 +1551,7 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     # Prepare arguments for worker function
     # Use CPU count for optimal parallelization (multiprocessing bypasses GIL)
     cpu_count = multiprocessing.cpu_count()
-    max_workers = min(len(pages), cpu_count)  # Use CPU count, not arbitrary thread limit
+    max_workers = min(len(pages), cpu_count, 4)  # Cap at 4 processes maximum
     
     search_exec_start = time.perf_counter()
     # If we have few pages, don't parallelize (overhead not worth it)
@@ -2916,6 +2916,18 @@ button = None
 
 def create_gui():
     """Create and initialize the GUI. Only called in main process."""
+    # Explicit check to prevent GUI creation in worker processes (Windows spawn issue)
+    # On Windows with spawn, worker processes have names like 'SpawnProcess-1', 'SpawnProcess-2', etc.
+    # Only the main process has name 'MainProcess'
+    try:
+        current_process = multiprocessing.current_process()
+        if current_process.name != 'MainProcess':
+            # This is a worker process, don't create GUI
+            return
+    except Exception:
+        # If we can't check, assume we're in main process (fallback)
+        pass
+    
     global root, COLOR_BACKGROUND, COLOR_SHELF, COLOR_BOOK, COLOR_TEXT, COLOR_ACCENT
     global main_canvas, main_scrollbar, scrollable_main_frame
     global library_tree, match_checkboxes
@@ -3210,6 +3222,15 @@ def create_gui():
     match_checkboxes = []  # List of (match, checkbox_var) tuples for export
 
 if __name__ == "__main__":
-    create_gui()
-    root.mainloop()
+    # Double-check we're in the main process before creating GUI
+    try:
+        if multiprocessing.current_process().name == 'MainProcess':
+            create_gui()
+            if root is not None:
+                root.mainloop()
+    except Exception:
+        # Fallback: just run it
+        create_gui()
+        if root is not None:
+            root.mainloop()
 
