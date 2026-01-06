@@ -13,6 +13,21 @@ from pathlib import Path
 from rapidfuzz import fuzz
 from rapidfuzz.distance import Levenshtein
 from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+import threading
+import multiprocessing
+
+# Configure multiprocessing to prevent processes showing in dock (macOS)
+if platform.system() == "Darwin":  # macOS
+    # Set multiprocessing start method early to prevent processes showing in dock
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+    except RuntimeError:
+        # Already set, ignore
+        pass
+# Windows uses 'spawn' by default, so no special handling needed
 
 
 # Global variable to store selected root folder and selected paths
@@ -391,6 +406,598 @@ def extract_page_number_from_image(img_name: str) -> str:
     return ""
 
 
+# ---------- Table of Contents Functions ----------
+
+def load_cuprins(volume_path: Path) -> Dict[int, str]:
+    """
+    Load and parse cuprins.txt file from a volume folder.
+    Returns a dictionary mapping page numbers to titles.
+    Format: "TITLE -- PAGE_NUMBER"
+    """
+    cuprins_file = volume_path / "cuprins.txt"
+    if not cuprins_file.exists():
+        return {}
+    
+    toc = {}  # page_num -> title
+    try:
+        with cuprins_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                # Parse format: "TITLE -- PAGE_NUMBER"
+                # Handle different separators: --, -, or just spaces
+                if " -- " in line:
+                    parts = line.split(" -- ", 1)
+                elif " - " in line:
+                    parts = line.split(" - ", 1)
+                else:
+                    # Try to find last number in the line
+                    match = re.search(r'(\d+)\s*$', line)
+                    if match:
+                        page_num_str = match.group(1)
+                        title = line[:match.start()].strip()
+                        try:
+                            page_num = int(page_num_str)
+                            toc[page_num] = title
+                        except ValueError:
+                            pass
+                    continue
+                
+                if len(parts) == 2:
+                    title = parts[0].strip()
+                    page_num_str = parts[1].strip()
+                    try:
+                        page_num = int(page_num_str)
+                        toc[page_num] = title
+                    except ValueError:
+                        pass
+    except Exception as e:
+        print(f"[{time.strftime('%H:%M:%S')}] Error loading cuprins.txt from {volume_path}: {e}")
+    
+    return toc
+
+
+def find_title_for_page(volume_path: Path, page_num: int, page_text: str = None, match_line_idx: int = None, page_lines: list = None) -> str:
+    """
+    Find the title for a given page number.
+    If page_num is exactly on a boundary, check OCR text to see if title appears before or after the match.
+    
+    Args:
+        volume_path: Path to the volume folder (contains cuprins.txt)
+        page_num: Page number where the match was found
+        page_text: Full text of the page (for boundary checking)
+        match_line_idx: Line index where the match occurs (for boundary checking)
+        page_lines: List of page lines (for boundary checking)
+    
+    Returns:
+        Title string or "qqq" if not found
+    """
+    toc = get_cuprins_cached(volume_path)
+    if not toc:
+        return "qqq"
+    
+    # Convert page_num to int if it's a string
+    try:
+        if isinstance(page_num, str):
+            page_num = page_num.strip()
+            if not page_num or page_num == "0":
+                return "qqq"
+            page_num_int = int(page_num)
+        else:
+            page_num_int = int(page_num)
+    except (ValueError, TypeError):
+        return "qqq"
+    
+    # Find the title that should contain this page
+    # Sort by page number
+    sorted_pages = sorted(toc.keys())
+    
+    # Check if there's a title that starts exactly at this page
+    title_at_page = toc.get(page_num_int)
+    
+    # Find the last title that starts before this page (previous title)
+    previous_title = ""
+    previous_title_start_page = None
+    
+    for start_page in sorted_pages:
+        if start_page < page_num_int:
+            previous_title = toc[start_page]
+            previous_title_start_page = start_page
+        else:
+            break
+    
+    # If there's a title that starts at this page, check OCR text to determine which title to use
+    if title_at_page and page_text and match_line_idx is not None and page_lines:
+        # Find the next title (if any)
+        next_title = ""
+        for start_page in sorted_pages:
+            if start_page > page_num_int:
+                next_title = toc[start_page]
+                break
+        
+        # If there's a next title, check if it appears in the OCR text
+        if next_title:
+            norm_next_title = normalize_text(next_title)
+            norm_page_text = normalize_text(page_text)
+            
+            # Find where the next title appears in the page text
+            next_title_position = None
+            
+            # Try to find the next title in the page text (normalized)
+            if norm_next_title in norm_page_text:
+                next_title_position = norm_page_text.find(norm_next_title)
+            else:
+                # Try to find individual words from the next title
+                next_title_words = norm_next_title.split()
+                if next_title_words:
+                    # Check if first word of next title appears in text
+                    first_word = next_title_words[0]
+                    if first_word in norm_page_text:
+                        next_title_position = norm_page_text.find(first_word)
+            
+            if next_title_position is not None:
+                # Find where the match occurs in the text
+                # Get text up to the match line (including the match line itself)
+                match_text = " ".join(page_lines[:match_line_idx + 1])
+                norm_match_text = normalize_text(match_text)
+                match_position = len(norm_match_text)
+                
+                # If next title appears BEFORE the match, the match is still in the previous title
+                # If next title appears AFTER the match, the match is in the title at this page
+                if next_title_position < match_position:
+                    # Next title appears before match → match is in previous title
+                    if previous_title:
+                        return previous_title
+                    else:
+                        return title_at_page  # Fallback to title at page if no previous title
+                else:
+                    # Next title appears after match → match is in title at this page
+                    return title_at_page
+        
+        # If next title not found in text, default to the title that starts at this page
+        return title_at_page
+    
+    # If no title starts at this page, use the previous title
+    if previous_title:
+        return previous_title
+    
+    # If no title found, return "qqq"
+    return "qqq"
+    
+    # Return title if found, otherwise return "qqq" as fallback
+    return title if title else "qqq"
+
+
+# Cache for cuprins files to avoid reloading
+_cuprins_cache = {}
+
+
+def get_cuprins_cached(volume_path: Path) -> Dict[int, str]:
+    """Get cuprins with caching."""
+    volume_path_str = str(volume_path)
+    if volume_path_str not in _cuprins_cache:
+        _cuprins_cache[volume_path_str] = load_cuprins(volume_path)
+    return _cuprins_cache[volume_path_str]
+
+
+# ---------- Index RTF Functions ----------
+
+def extract_rtf_text(rtf_content: str) -> str:
+    """
+    Extract plain text from RTF content by removing RTF control codes.
+    Handles RTF escape sequences for special characters.
+    """
+    # First, handle RTF escape sequences for special characters
+    # \'XX where XX is hex code for character
+    def replace_rtf_escape(match):
+        hex_code = match.group(1)
+        try:
+            char_code = int(hex_code, 16)
+            return chr(char_code)
+        except:
+            return match.group(0)
+    
+    # Replace \'XX escape sequences
+    text = re.sub(r"\\'([0-9a-fA-F]{2})", replace_rtf_escape, rtf_content)
+    
+    # Remove RTF control words (but preserve text)
+    # Remove \ commands that are control words
+    text = re.sub(r'\\[a-z]+\d*\s*', ' ', text)
+    # Remove RTF groups that are just formatting
+    # Remove braces but be careful - we'll do it in a way that preserves text
+    # Remove standalone braces
+    text = re.sub(r'[{}]', ' ', text)
+    # Remove special RTF sequences
+    text = re.sub(r'\\[\\\-\{\}]', '', text)
+    # Remove remaining RTF control sequences
+    text = re.sub(r'\\[^a-zA-Z\s]', '', text)
+    # Clean up multiple spaces and newlines
+    text = re.sub(r'\s+', ' ', text)
+    # Replace \par with newline
+    text = text.replace('\\par', '\n')
+    # Clean up
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
+def load_index_rtf(index_file: Path) -> Dict[str, List[str]]:
+    """
+    Load and parse an index file (BF-index.txt or CEE-index.txt).
+    Returns a dictionary mapping normalized titles to lists of codes.
+    Format: "Title, CODE1; CODE2; CODE3" -> {"title": ["CODE1", "CODE2", "CODE3"]}
+    Handles formats like "97.III", "130.I subtip", "131.II. 2" - extracts base number.
+    """
+    if not index_file.exists():
+        return {}
+    
+    load_start = time.perf_counter()
+    index_dict = {}
+    try:
+        with index_file.open("r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line or len(line) < 3:
+                    continue
+                
+                # Skip header lines
+                if line.startswith("Amzulescu") or "INDICE" in line or "ALFABETIC" in line:
+                    continue
+                
+                # Split by comma to separate title from codes
+                # Format: "Title, CODE1; CODE2; CODE3" or "Title, CODE1"
+                if ',' not in line:
+                    continue
+                
+                parts = line.split(',', 1)
+                if len(parts) != 2:
+                    continue
+                
+                title_clean = parts[0].strip()
+                codes_part = parts[1].strip()
+                
+                # Only process if we have a reasonable title (at least 3 characters)
+                if len(title_clean) < 3:
+                    continue
+                
+                # Extract all codes from the codes part
+                # Codes can be separated by semicolons: "97.III; 130.I subtip"
+                # Extract full code format (including dots, Roman numerals, and "subtip" if present)
+                codes = []
+                # Split by semicolon to get individual codes
+                code_parts = re.split(r'[;]', codes_part)
+                for code_part in code_parts:
+                    code_part = code_part.strip()
+                    # Extract the full code format (digits, dots, letters for Roman numerals, and "subtip" if present)
+                    # Examples: "5.I" -> "5.I", "97.III" -> "97.III", "130.I subtip" -> "130.I subtip", "131.II. 2" -> "131.II"
+                    # Match: digits, optional dots with letters, optional space followed by "subtip"
+                    match = re.search(r'^(\d+(?:\.[A-Za-z]+)*(?:\s+subtip)?)', code_part, re.IGNORECASE)
+                    if match:
+                        code_num = match.group(1).strip()
+                        codes.append(code_num)
+                
+                if codes:
+                    # Normalize title for matching (normalize_text already lowercases)
+                    norm_title = normalize_text(title_clean)
+                    if norm_title:
+                        # Store all codes for this title
+                        if norm_title not in index_dict:
+                            index_dict[norm_title] = []
+                        # Add codes that aren't already in the list
+                        for code in codes:
+                            if code not in index_dict[norm_title]:
+                                index_dict[norm_title].append(code)
+        
+        load_end = time.perf_counter()
+        load_time = load_end - load_start
+        print(f"[{time.strftime('%H:%M:%S')}] Loaded index file '{index_file.name}': {len(index_dict)} entries in {load_time:.2f}s")
+    except Exception as e:
+        print(f"[{time.strftime('%H:%M:%S')}] Error loading index file {index_file}: {e}")
+    
+    return index_dict
+
+
+def load_coduri_doc() -> Dict[str, str]:
+    """
+    Load Coduri-BF-CEE.txt and return a dictionary mapping codes to full lines.
+    Format: {"BF 5": "BF 5 - Voinicul rănit  • Tip I - [Maica bătrână] 7", "CEE 16": "CEE 16 - Voinicul adormit 221"}
+    Returns the first line found for each code (in case there are multiple types).
+    """
+    app_root = get_output_path()
+    coduri_file = app_root / "Coduri-BF-CEE.txt"
+    
+    # Also try .doc extension in case it's actually a .doc file
+    if not coduri_file.exists():
+        coduri_file = app_root / "Coduri-BF-CEE.doc"
+    
+    # Also try .docx extension
+    if not coduri_file.exists():
+        coduri_file = app_root / "Coduri-BF-CEE.docx"
+    
+    if not coduri_file.exists():
+        print(f"[{time.strftime('%H:%M:%S')}] Coduri-BF-CEE file not found in {app_root}")
+        return {}
+    
+    coduri_dict = {}
+    try:
+        # Try reading as .docx first (python-docx only supports .docx)
+        if coduri_file.suffix == ".docx":
+            try:
+                doc = Document(str(coduri_file))
+                for para in doc.paragraphs:
+                    line = para.text.strip()
+                    if line:
+                        # Look for pattern: "BF 74 - TITLE" or "CEE 16 - TITLE"
+                        # Also handle codes with suffixes like "BF 5.I" (though they may not exist in this file)
+                        match = re.match(r'^(BF|CEE)\s+(\d+(?:\.[A-Za-z]+)?)\s*-\s*(.+)$', line, re.IGNORECASE)
+                        if match:
+                            code_type = match.group(1).upper()
+                            code_num = match.group(2)  # This can be "5" or "5.I" if it exists
+                            code = f"{code_type} {code_num}"
+                            # Only store first occurrence of each code
+                            if code not in coduri_dict:
+                                coduri_dict[code] = line
+            except Exception as e:
+                print(f"[{time.strftime('%H:%M:%S')}] Error reading Coduri-BF-CEE as .docx: {e}")
+        
+        # Try reading as plain text (.txt or fallback)
+        if coduri_file.suffix == ".txt" or coduri_file.suffix == ".doc" or not coduri_dict:
+            try:
+                with coduri_file.open("r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            # Skip lines that don't start with BF or CEE
+                            if not re.match(r'^(BF|CEE)\s+\d+', line, re.IGNORECASE):
+                                continue
+                            
+                            # Look for pattern: "BF 74 - TITLE" or "CEE 16 - TITLE"
+                            # Also handle lines with additional info like "BF 5 - Voinicul rănit  • Tip I - [Maica bătrână] 7"
+                            # Also handle codes with suffixes like "BF 5.I" (though they may not exist in this file)
+                            match = re.match(r'^(BF|CEE)\s+(\d+(?:\.[A-Za-z]+)?)\s*-\s*(.+)$', line, re.IGNORECASE)
+                            if match:
+                                code_type = match.group(1).upper()
+                                code_num = match.group(2)  # This can be "5" or "5.I" if it exists
+                                code = f"{code_type} {code_num}"
+                                # Only store first occurrence of each code (first type)
+                                if code not in coduri_dict:
+                                    coduri_dict[code] = line
+            except Exception as e2:
+                print(f"[{time.strftime('%H:%M:%S')}] Error reading Coduri-BF-CEE as text: {e2}")
+    except Exception as e:
+        print(f"[{time.strftime('%H:%M:%S')}] Error loading Coduri-BF-CEE: {e}")
+    
+    print(f"[{time.strftime('%H:%M:%S')}] Loaded Coduri-BF-CEE: {len(coduri_dict)} codes")
+    return coduri_dict
+
+
+# Cache for coduri doc
+_coduri_cache = None
+
+
+def get_coduri_cached() -> Dict[str, str]:
+    """Get coduri doc with caching."""
+    global _coduri_cache
+    if _coduri_cache is None:
+        _coduri_cache = load_coduri_doc()
+    return _coduri_cache
+
+
+def find_code_for_title(volume_path: Path, title: str) -> str:
+    """
+    Find the code(s) for a title by searching in BF-index.txt and CEE-index.txt.
+    If multiple matches found, returns all codes followed by "qqq".
+    If single match found, looks up the full line from Coduri-BF-CEE.doc.
+    
+    Args:
+        volume_path: Path to the volume folder (or parent folder containing index files)
+        title: The title to search for
+    
+    Returns:
+        Code string(s) like "BF 16" or "CEE 16", or "BF 16, CEE 20 qqq" for multiple,
+        or full line from Coduri-BF-CEE.doc for single match
+    """
+    if not title or title == "qqq":
+        return ""
+    
+    # Normalize title for matching (normalize_text already lowercases)
+    norm_title = normalize_text(title)
+    if not norm_title:
+        return ""
+    
+    # Try to find index files - check app root folder first (where default.docx is),
+    # then volume folder, then parent folders
+    app_root = get_output_path()  # Where default.docx is located
+    search_paths = [app_root, volume_path]
+    # Also check parent folders up to 3 levels
+    current = volume_path.parent
+    for _ in range(3):
+        if current and current != current.parent:
+            search_paths.append(current)
+            current = current.parent
+        else:
+            break
+    
+    search_start = time.perf_counter()
+    
+    # Determine max_diff based on title length (letters only)
+    # Remove spaces and non-letters from normalized title to get length
+    letters_only_title = re.sub(r'[^a-zăâîșțáéíóúàèìòùâêîôûäëïöü]', '', norm_title)
+    # If title is 5 characters or less, allow no character differences (exact match only)
+    # If title is 6-7 characters, allow 1 character difference
+    # Otherwise, allow 2 character differences
+    if len(letters_only_title) <= 5:
+        max_diff = 0  # Exact match only
+    elif len(letters_only_title) <= 7:
+        max_diff = 1  # Allow 1 character difference
+    else:
+        max_diff = 2  # Allow 2 character differences
+    
+    # Helper function to check if two normalized strings match with maximum character differences
+    # (ignoring spaces, non-letters, and diacritics)
+    # The matched title can contain extra words as long as it contains the search title
+    def matches_with_tolerance(str1: str, str2: str, max_diff: int = 2) -> tuple[bool, int, str, str]:
+        """
+        Check if two strings match, allowing up to max_diff character differences.
+        Spaces, non-letters, and diacritics are normalized/ignored when calculating differences.
+        The matched title (str2) must have at least as many words as the search title (str1).
+        For max_diff=0 (5 letters or under), only exact matches are allowed (no character differences).
+        Returns (matches, distance, letters_only_str1, letters_only_str2)
+        """
+        # Both should already be normalized and lowercase
+        str1_lower = str1.lower()
+        str2_lower = str2.lower()
+        
+        # Count words in each string (after normalization)
+        words_1 = len([w for w in str1_lower.split() if w])
+        words_2 = len([w for w in str2_lower.split() if w])
+        
+        # The matched title (str2) must have at least as many words as the search title (str1)
+        if words_2 < words_1:
+            return (False, 0, "", "")
+        
+        # Remove spaces and non-letters (keep only letters with diacritics)
+        letters_only_1 = re.sub(r'[^a-zăâîșțáéíóúàèìòùâêîôûäëïöü]', '', str1_lower)
+        letters_only_2 = re.sub(r'[^a-zăâîșțáéíóúàèìòùâêîôûäëïöü]', '', str2_lower)
+        
+        # Normalize diacritics (ă/â/î -> a, ș -> s, ț -> t, etc.) so diacritics don't count as differences
+        letters_only_1_normalized = normalize_similar_letters(letters_only_1)
+        letters_only_2_normalized = normalize_similar_letters(letters_only_2)
+        
+        # Exact match on letters only (after diacritic normalization)
+        if letters_only_1_normalized == letters_only_2_normalized:
+            return (True, 0, letters_only_1_normalized, letters_only_2_normalized)
+        
+        # If max_diff is 0 (5 letters or under), only allow exact matches - no substring matches with differences
+        if max_diff == 0:
+            return (False, 0, letters_only_1_normalized, letters_only_2_normalized)
+        
+        # For max_diff > 0, check if str2 contains str1 (allowing extra words/characters around it)
+        # If str2 contains str1 as a substring (letters only, diacritics normalized), that's a valid match
+        if letters_only_1_normalized in letters_only_2_normalized:
+            # For substring matches, we allow the extra characters (they're just extra words)
+            return (True, 0, letters_only_1_normalized, letters_only_2_normalized)
+        
+        # Calculate Levenshtein distance on letters only (after diacritic normalization)
+        distance = Levenshtein.distance(letters_only_1_normalized, letters_only_2_normalized)
+        
+        # Allow up to max_diff character differences
+        matches = distance <= max_diff
+        return (matches, distance, letters_only_1_normalized, letters_only_2_normalized)
+    
+    # Collect all matching codes (not just the best one) from both BF and CEE
+    all_matches = []  # List of (code, similarity, matched_title) tuples
+    
+    # Try BF-index.txt - search all paths
+    bf_found = False
+    for search_path in search_paths:
+        bf_index = search_path / "BF-index.txt"
+        if bf_index.exists():
+            bf_dict = get_index_rtf_cached(bf_index)
+            bf_found = True
+            # First try exact match (already normalized)
+            if norm_title in bf_dict:
+                code_nums = bf_dict[norm_title]  # This is now a list of codes like ["5.I"]
+                for code_num in code_nums:
+                    code = f"BF {code_num}"
+                    all_matches.append((code, 100.0, norm_title))
+            # Always also try fuzzy matching to catch all possible matches
+            # Try matching on all entries with dynamic character difference tolerance (ignoring spaces/non-letters)
+            for dict_title, code_nums in bf_dict.items():
+                # Skip if we already found exact match for this title
+                if norm_title == dict_title:
+                    continue
+                # Both are already normalized, so we can compare directly
+                matches, distance, letters_1, letters_2 = matches_with_tolerance(norm_title, dict_title, max_diff)
+                
+                if matches:
+                    # Calculate similarity percentage
+                    max_len = max(len(letters_1), len(letters_2))
+                    similarity = (1.0 - distance / max_len) * 100.0 if max_len > 0 else 100.0
+                    
+                    # Add all codes for this matching title
+                    for code_num in code_nums:
+                        code = f"BF {code_num}"
+                        all_matches.append((code, similarity, dict_title))
+            break  # Only check first found file
+    
+    # Try CEE-index.txt - search all paths (always search, even if found in BF)
+    cee_found = False
+    for search_path in search_paths:
+        cee_index = search_path / "CEE-index.txt"
+        if cee_index.exists():
+            cee_dict = get_index_rtf_cached(cee_index)
+            cee_found = True
+            # First try exact match (already normalized)
+            if norm_title in cee_dict:
+                code_nums = cee_dict[norm_title]  # This is now a list of codes like ["5.I"]
+                for code_num in code_nums:
+                    code = f"CEE {code_num}"
+                    all_matches.append((code, 100.0, norm_title))
+            # Always also try fuzzy matching to catch all possible matches
+            # Try matching on all entries with dynamic character difference tolerance (ignoring spaces/non-letters)
+            for dict_title, code_nums in cee_dict.items():
+                # Skip if we already found exact match for this title
+                if norm_title == dict_title:
+                    continue
+                # Both are already normalized, so we can compare directly
+                matches, distance, letters_1, letters_2 = matches_with_tolerance(norm_title, dict_title, max_diff)
+                
+                if matches:
+                    # Calculate similarity percentage
+                    max_len = max(len(letters_1), len(letters_2))
+                    similarity = (1.0 - distance / max_len) * 100.0 if max_len > 0 else 100.0
+                    
+                    # Add all codes for this matching title
+                    for code_num in code_nums:
+                        code = f"CEE {code_num}"
+                        all_matches.append((code, similarity, dict_title))
+            break  # Only check first found file
+    
+    search_end = time.perf_counter()
+    search_time = search_end - search_start
+    
+    if not all_matches:
+        return ""
+    
+    # Remove duplicates (same code)
+    unique_matches = {}
+    for code, similarity, matched_title in all_matches:
+        if code not in unique_matches or similarity > unique_matches[code][1]:
+            unique_matches[code] = (code, similarity, matched_title)
+    
+    codes = list(unique_matches.keys())
+    
+    # If multiple matches, return all codes separated by commas with " - qqq" suffix
+    if len(codes) > 1:
+        codes_str = ", ".join(codes)
+        return f"{codes_str} - qqq"
+    
+    # If single match, look up the full line from Coduri-BF-CEE.txt
+    single_code = codes[0]  # This is now "BF 5.I" or "CEE 5.I" format
+    coduri_dict = get_coduri_cached()
+    
+    # Search for exactly the code as-is (e.g., "BF 5.I")
+    if single_code in coduri_dict:
+        full_line = coduri_dict[single_code]
+        return full_line
+    else:
+        # If not found, return the code with "- qqq" suffix
+        return f"{single_code} - qqq"
+
+
+# Cache for index RTF files
+_index_rtf_cache = {}
+
+
+def get_index_rtf_cached(index_file: Path) -> Dict[str, List[str]]:
+    """Get index RTF with caching."""
+    index_file_str = str(index_file)
+    if index_file_str not in _index_rtf_cache:
+        _index_rtf_cache[index_file_str] = load_index_rtf(index_file)
+    return _index_rtf_cache[index_file_str]
+
+
 # ---------- OCR Loading Functions ----------
 
 def load_ocr_pages(ocr_root: Path, selected_volumes: list = None):
@@ -405,11 +1012,42 @@ def load_ocr_pages(ocr_root: Path, selected_volumes: list = None):
     if not selected_volumes:
         return pages
 
-    # Încarcă paginile din fiecare volume selectat
-    for volume_path_str in selected_volumes:
+    # Use thread-safe list for parallel loading
+    pages_lock = threading.Lock()
+    volume_times = {}
+    
+    def load_volume(volume_path_str: str):
+        """Load pages from a single volume (thread-safe)."""
+        vol_start = time.perf_counter()
+        volume_pages = []
         volume_path = Path(volume_path_str)
         if volume_path.exists() and folder_has_ocr(volume_path):
-            _load_pages_from_folder(volume_path, pages)
+            _load_pages_from_folder(volume_path, volume_pages)
+        vol_end = time.perf_counter()
+        vol_time = vol_end - vol_start
+        volume_times[volume_path_str] = (len(volume_pages), vol_time)
+        return volume_pages
+
+    # Parallelize loading volumes using ThreadPoolExecutor
+    # Use max_workers based on number of volumes, but cap at reasonable limit
+    max_workers = min(len(selected_volumes), 16)  # Cap at 16 threads for I/O
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all volume loading tasks
+        future_to_volume = {
+            executor.submit(load_volume, volume_path_str): volume_path_str
+            for volume_path_str in selected_volumes
+        }
+        
+        # Collect results as they complete
+        for future in as_completed(future_to_volume):
+            try:
+                volume_pages = future.result()
+                with pages_lock:
+                    pages.extend(volume_pages)
+            except Exception as e:
+                # Log error but continue with other volumes
+                print(f"[{time.strftime('%H:%M:%S')}] Error loading volume {future_to_volume[future]}: {e}")
 
     return pages
 
@@ -435,15 +1073,20 @@ def folder_has_ocr(folder: Path) -> bool:
 
 
 def _load_pages_from_folder(folder: Path, pages: list):
-        for txt in sorted(folder.glob("*.txt")):
+        folder_start = time.perf_counter()
+        txt_files = sorted(folder.glob("*.txt"))
+        pages_before = len(pages)
+        for txt in txt_files:
+            file_start = time.perf_counter()
             with txt.open("r", encoding="utf-8") as f:
                 current_page_num = None
                 current_page_img = None
                 buffer = []
                 lines_buffer = []
+                pages_in_file = 0
 
                 def flush_page():
-                    nonlocal buffer, current_page_num, current_page_img, lines_buffer
+                    nonlocal buffer, current_page_num, current_page_img, lines_buffer, pages_in_file
                     if current_page_num is None or current_page_img is None:
                         return
                     content = "".join(buffer).strip()
@@ -474,6 +1117,7 @@ def _load_pages_from_folder(folder: Path, pages: list):
                         "text": content,
                         "lines": clean_lines,
                     })
+                    pages_in_file += 1
 
                 for line in f:
                     m = PAGE_HEADER_RE.match(line)
@@ -487,6 +1131,11 @@ def _load_pages_from_folder(folder: Path, pages: list):
                         buffer.append(line)
                         lines_buffer.append(line)
                 flush_page()
+            file_end = time.perf_counter()
+            file_time = file_end - file_start
+        folder_end = time.perf_counter()
+        folder_time = folder_end - folder_start
+        pages_added = len(pages) - pages_before
 
 
 # ---------- Search Functions ----------
@@ -682,6 +1331,176 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     return (found_all, best_score, best_start_line, best_end_line, best_matched_words)
 
 
+def _search_single_page_worker(args):
+    """
+    Worker function for multiprocessing - searches a single page.
+    Must be at module level to be picklable.
+    args: tuple of (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+    """
+    # On macOS, make this process a background process to avoid showing in dock
+    if platform.system() == "Darwin":
+        import os
+        try:
+            # Set process group to make it a background process (Unix/macOS only)
+            os.setpgrp()
+        except (OSError, AttributeError):
+            # Not available on this system, ignore
+            pass
+    
+    page, norm_query, query_words, query_text, threshold, word_span, exact_order = args
+    page_matches = []
+    page_lines = page.get("lines", [])
+    
+    if word_span is not None and word_span > 0 and page_lines:
+        found, score, start_line_idx, end_line_idx, matched_words = check_words_in_word_span(
+            query_words, page_lines, word_span, exact_order
+        )
+        
+        if found and score >= threshold:
+            # Use the exact matched fragment
+            matched_fragment = " ".join(matched_words) if matched_words else ""
+            
+            # Find title for this page
+            volume_path = Path(page.get("volume_path", ""))
+            title = find_title_for_page(
+                volume_path,
+                page["page_num"],
+                page.get("text", ""),
+                start_line_idx,
+                page_lines
+            )
+            
+            # Find code for the title
+            code = find_code_for_title(volume_path, title)
+            
+            page_matches.append({
+                "folder": page["folder"],
+                "volume_path": page.get("volume_path", ""),
+                "image": page["page_img"],
+                "score": round(score, 1),
+                "page_num": page["page_num"],
+                "title": title,  # Add title
+                "code": code,  # Add code
+                "snippet": [matched_fragment],  # Store as list for consistency
+                "matched_fragment": matched_fragment,  # Exact matched fragment
+                "page_lines": page_lines,  # Store full page lines for context
+                "match_start_line_idx": start_line_idx,  # Line index where match starts
+                "match_end_line_idx": end_line_idx  # Line index where match ends
+            })
+        return page_matches
+    
+    norm_page = normalize_text(page["text"])
+    if not norm_page:
+        return page_matches
+    
+    score = fuzz.partial_ratio(norm_query, norm_page)
+    norm_page_words = norm_page.split()
+    # Ensure each query word matches a different text word
+    matched_word_indices = set()
+    words_found = 0
+    for query_word in query_words:
+        for idx, text_word in enumerate(norm_page_words):
+            if idx not in matched_word_indices and words_match(query_word, text_word):
+                matched_word_indices.add(idx)
+                words_found += 1
+                break
+    word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
+    
+    if words_found == len(query_words):
+        final_score = max(score, word_coverage * 0.9)
+    elif words_found >= len(query_words) * 0.8:
+        final_score = (score + word_coverage) / 2
+    else:
+        final_score = score * (words_found / len(query_words))
+    
+    if final_score >= threshold:
+        snippet = find_match_context(query_text, page_lines)
+        # For full page search, extract the best matching fragment
+        # Find the line with the best match and extract words around it
+        snippet_text = " ".join(snippet)
+        snippet_words = snippet_text.split()
+        
+        # Find where search words appear in snippet
+        norm_snippet_words = [normalize_text(w) for w in snippet_words]
+        norm_query_words = [normalize_text(w) for w in query_words]
+        
+        match_start_idx = None
+        for i, norm_word in enumerate(norm_snippet_words):
+            for norm_query_word in norm_query_words:
+                if words_match(norm_query_word, norm_word):
+                    match_start_idx = i
+                    break
+            if match_start_idx is not None:
+                break
+        
+        # Find the line index in page_lines where the match occurs
+        best_line_idx = None
+        best_match_score = 0
+        for i, line in enumerate(page_lines):
+            norm_line = normalize_text(line)
+            if not norm_line:
+                continue
+            norm_line_words = norm_line.split()
+            # Ensure each query word matches a different text word
+            matched_word_indices = set()
+            words_found = 0
+            for query_word in query_words:
+                for idx, text_word in enumerate(norm_line_words):
+                    if idx not in matched_word_indices and words_match(query_word, text_word):
+                        matched_word_indices.add(idx)
+                        words_found += 1
+                        break
+            if words_found > 0:
+                score = fuzz.partial_ratio(norm_query, norm_line)
+                if score > best_match_score:
+                    best_match_score = score
+                    best_line_idx = i
+        
+        if match_start_idx is not None:
+            # Extract a window around the match (use word_span if available, otherwise 20 words)
+            fragment_size = word_span if word_span else 20
+            half_size = fragment_size // 2
+            start_idx = max(0, match_start_idx - half_size)
+            end_idx = min(len(snippet_words), start_idx + fragment_size)
+            if end_idx - start_idx < fragment_size and start_idx > 0:
+                start_idx = max(0, end_idx - fragment_size)
+            matched_fragment = " ".join(snippet_words[start_idx:end_idx])
+        else:
+            # Fallback: use first fragment_size words
+            fragment_size = word_span if word_span else 20
+            matched_fragment = " ".join(snippet_words[:fragment_size])
+        
+            # Find title for this page
+            volume_path = Path(page.get("volume_path", ""))
+            title = find_title_for_page(
+                volume_path,
+                page["page_num"],
+                page.get("text", ""),
+                best_line_idx if best_line_idx is not None else 0,
+                page_lines
+            )
+            
+            # Find code for the title
+            code = find_code_for_title(volume_path, title)
+            
+            page_matches.append({
+                "folder": page["folder"],
+                "volume_path": page.get("volume_path", ""),
+                "image": page["page_img"],
+                "score": round(final_score, 1),
+                "page_num": page["page_num"],
+                "title": title,  # Add title
+                "code": code,  # Add code
+                "snippet": snippet,
+                "matched_fragment": matched_fragment,  # Exact matched fragment
+                "page_lines": page_lines,  # Store full page lines for context
+                "match_start_line_idx": best_line_idx if best_line_idx is not None else 0,  # Line index where match occurs
+                "match_end_line_idx": best_line_idx + 1 if best_line_idx is not None else 1  # Line index where match ends
+            })
+    
+    return page_matches
+
+
 def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, word_span: int = None, exact_order: bool = True, use_inflections: bool = True):
     """
     Caută query_text în toate paginile și returnează toate match-urile cu score >= threshold.
@@ -689,11 +1508,15 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     exact_order: True = cuvintele trebuie să apară în ordinea exactă, False = orice ordine
     use_inflections: Dacă True, extinde căutarea cu forme flexionare din DEX online
     """
+    search_start = time.perf_counter()
+    print(f"[{time.strftime('%H:%M:%S')}] Starting search in {len(pages)} pages...")
+    
     # Cache pentru forme flexionare (partajat între apeluri)
     if not hasattr(search_text_in_pages, 'inflection_cache'):
         search_text_in_pages.inflection_cache = {}
     
     # Extinde cuvintele cu forme flexionare dacă este activat
+    inflection_start = time.perf_counter()
     if use_inflections:
         expanded_words = expand_search_terms_with_inflections(
             query_text, 
@@ -706,6 +1529,9 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     else:
         norm_query = normalize_text(query_text)
         query_words = norm_query.split()
+    inflection_end = time.perf_counter()
+    inflection_time = inflection_end - inflection_start
+    print(f"[{time.strftime('%H:%M:%S')}] Query processing (inflections): {inflection_time:.2f}s, {len(query_words)} words")
     
     if len(query_words) < 1:
         raise ValueError("Query must have at least 1 word")
@@ -714,125 +1540,70 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     
     matches = []
     
-    for page in pages:
-        page_lines = page.get("lines", [])
-        
-        if word_span is not None and word_span > 0 and page_lines:
-            found, score, start_line_idx, end_line_idx, matched_words = check_words_in_word_span(query_words, page_lines, word_span, exact_order)
-            
-            if found and score >= threshold:
-                # Use the exact matched fragment
-                matched_fragment = " ".join(matched_words) if matched_words else ""
-                
-                matches.append({
-                    "folder": page["folder"],
-                    "volume_path": page.get("volume_path", ""),
-                    "image": page["page_img"],
-                    "score": round(score, 1),
-                    "page_num": page["page_num"],
-                    "snippet": [matched_fragment],  # Store as list for consistency
-                    "matched_fragment": matched_fragment,  # Exact matched fragment
-                    "page_lines": page_lines,  # Store full page lines for context
-                    "match_start_line_idx": start_line_idx,  # Line index where match starts
-                    "match_end_line_idx": end_line_idx  # Line index where match ends
-                })
-            continue
-        
-        norm_page = normalize_text(page["text"])
-        if not norm_page:
-            continue
-        
-        score = fuzz.partial_ratio(norm_query, norm_page)
-        norm_page_words = norm_page.split()
-        # Ensure each query word matches a different text word
-        matched_word_indices = set()
-        words_found = 0
-        for query_word in query_words:
-            for idx, text_word in enumerate(norm_page_words):
-                if idx not in matched_word_indices and words_match(query_word, text_word):
-                    matched_word_indices.add(idx)
-                    words_found += 1
-                    break
-        word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
-        
-        if words_found == len(query_words):
-            final_score = max(score, word_coverage * 0.9)
-        elif words_found >= len(query_words) * 0.8:
-            final_score = (score + word_coverage) / 2
-        else:
-            final_score = score * (words_found / len(query_words))
-        
-        if final_score >= threshold:
-            snippet = find_match_context(query_text, page_lines)
-            # For full page search, extract the best matching fragment
-            # Find the line with the best match and extract words around it
-            snippet_text = " ".join(snippet)
-            snippet_words = snippet_text.split()
-            
-            # Find where search words appear in snippet
-            norm_snippet_words = [normalize_text(w) for w in snippet_words]
-            norm_query_words = [normalize_text(w) for w in query_words]
-            
-            match_start_idx = None
-            for i, norm_word in enumerate(norm_snippet_words):
-                for norm_query_word in norm_query_words:
-                    if words_match(norm_query_word, norm_word):
-                        match_start_idx = i
-                        break
-                if match_start_idx is not None:
-                    break
-            
-            # Find the line index in page_lines where the match occurs
-            best_line_idx = None
-            best_match_score = 0
-            for i, line in enumerate(page_lines):
-                norm_line = normalize_text(line)
-                if not norm_line:
-                    continue
-                norm_line_words = norm_line.split()
-                # Ensure each query word matches a different text word
-                matched_word_indices = set()
-                words_found = 0
-                for query_word in query_words:
-                    for idx, text_word in enumerate(norm_line_words):
-                        if idx not in matched_word_indices and words_match(query_word, text_word):
-                            matched_word_indices.add(idx)
-                            words_found += 1
-                            break
-                if words_found > 0:
-                    score = fuzz.partial_ratio(norm_query, norm_line)
-                    if score > best_match_score:
-                        best_match_score = score
-                        best_line_idx = i
-            
-            if match_start_idx is not None:
-                # Extract a window around the match (use word_span if available, otherwise 20 words)
-                fragment_size = word_span if word_span else 20
-                half_size = fragment_size // 2
-                start_idx = max(0, match_start_idx - half_size)
-                end_idx = min(len(snippet_words), start_idx + fragment_size)
-                if end_idx - start_idx < fragment_size and start_idx > 0:
-                    start_idx = max(0, end_idx - fragment_size)
-                matched_fragment = " ".join(snippet_words[start_idx:end_idx])
-            else:
-                # Fallback: use first fragment_size words
-                fragment_size = word_span if word_span else 20
-                matched_fragment = " ".join(snippet_words[:fragment_size])
-            
-            matches.append({
-                "folder": page["folder"],
-                "volume_path": page.get("volume_path", ""),
-                "image": page["page_img"],
-                "score": round(final_score, 1),
-                "page_num": page["page_num"],
-                "snippet": snippet,
-                "matched_fragment": matched_fragment,  # Exact matched fragment
-                "page_lines": page_lines,  # Store full page lines for context
-                "match_start_line_idx": best_line_idx if best_line_idx is not None else 0,  # Line index where match occurs
-                "match_end_line_idx": best_line_idx + 1 if best_line_idx is not None else 1  # Line index where match ends
-            })
+    # Prepare arguments for worker function
+    # Use CPU count for optimal parallelization (multiprocessing bypasses GIL)
+    cpu_count = multiprocessing.cpu_count()
+    max_workers = min(len(pages), cpu_count)  # Use CPU count, not arbitrary thread limit
     
+    search_exec_start = time.perf_counter()
+    # If we have few pages, don't parallelize (overhead not worth it)
+    if len(pages) < 10:
+        print(f"[{time.strftime('%H:%M:%S')}] Using sequential search (few pages)")
+        # Sequential search for small page counts
+        for idx, page in enumerate(pages):
+            args = (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+            page_matches = _search_single_page_worker(args)
+            matches.extend(page_matches)
+            if (idx + 1) % 100 == 0:
+                print(f"[{time.strftime('%H:%M:%S')}]   Searched {idx + 1}/{len(pages)} pages...")
+    else:
+        print(f"[{time.strftime('%H:%M:%S')}] Using multiprocessing with {max_workers} processes (CPU cores: {cpu_count})")
+        # Parallel search using multiprocessing (bypasses GIL for CPU-bound work)
+        completed_count = 0
+        
+        # Prepare all arguments
+        search_args = [
+            (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+            for page in pages
+        ]
+        
+        # Use spawn context (works on both macOS and Windows)
+        # This prevents macOS processes from showing in dock
+        ctx = multiprocessing.get_context('spawn')
+        
+        with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
+            # Submit all page search tasks
+            future_to_page = {
+                executor.submit(_search_single_page_worker, args): args[0]
+                for args in search_args
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_page):
+                try:
+                    page_matches = future.result()
+                    matches.extend(page_matches)
+                    completed_count += 1
+                    if completed_count % 100 == 0:
+                        print(f"[{time.strftime('%H:%M:%S')}]   Searched {completed_count}/{len(pages)} pages...")
+                except Exception as e:
+                    # Log error but continue with other pages
+                    print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
+    
+    search_exec_end = time.perf_counter()
+    search_exec_time = search_exec_end - search_exec_start
+    print(f"[{time.strftime('%H:%M:%S')}] Search execution completed: {len(matches)} matches found in {search_exec_time:.2f}s")
+    
+    sort_start = time.perf_counter()
     matches.sort(key=lambda x: x["score"], reverse=True)
+    sort_end = time.perf_counter()
+    sort_time = sort_end - sort_start
+    print(f"[{time.strftime('%H:%M:%S')}] Sorting matches: {sort_time:.2f}s")
+    
+    search_end = time.perf_counter()
+    total_search_time = search_end - search_start
+    print(f"[{time.strftime('%H:%M:%S')}] Total search time: {total_search_time:.2f}s")
+    
     return matches
 
 
@@ -844,6 +1615,14 @@ def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, thre
     exact_order: True = words must appear in exact order, False = any order
     Returns: list of match dictionaries
     """
+    overall_start = time.perf_counter()
+    print(f"\n{'='*60}")
+    print(f"[{time.strftime('%H:%M:%S')}] ===== STARTING SEARCH =====")
+    print(f"[{time.strftime('%H:%M:%S')}] Query: '{query_text}'")
+    print(f"[{time.strftime('%H:%M:%S')}] Volumes: {len(selected_volumes) if selected_volumes else 0}")
+    print(f"[{time.strftime('%H:%M:%S')}] Word span: {word_span}, Exact order: {exact_order}, Threshold: {threshold}")
+    print(f"{'='*60}\n")
+    
     if not ocr_root.is_dir():
         raise Exception(f"OCR root folder not found: {ocr_root}")
     
@@ -851,13 +1630,32 @@ def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, thre
         raise Exception(f"Threshold must be between 0 and 100, got: {threshold}")
     
     # Load OCR pages (only from selected volumes)
+    load_start = time.perf_counter()
     pages = load_ocr_pages(ocr_root, selected_volumes)
+    load_end = time.perf_counter()
+    load_time = load_end - load_start
+    print(f"[{time.strftime('%H:%M:%S')}] === Loading phase: {load_time:.2f}s ===\n")
     
     if not pages:
         raise Exception("No pages found in selected folders. Please check your selection.")
     
     # Search
+    search_start = time.perf_counter()
     matches = search_text_in_pages(query_text, pages, threshold, word_span=word_span, exact_order=exact_order)
+    search_end = time.perf_counter()
+    search_time = search_end - search_start
+    print(f"[{time.strftime('%H:%M:%S')}] === Search phase: {search_time:.2f}s ===\n")
+    
+    overall_end = time.perf_counter()
+    overall_time = overall_end - overall_start
+    print(f"{'='*60}")
+    print(f"[{time.strftime('%H:%M:%S')}] ===== SEARCH COMPLETE =====")
+    print(f"[{time.strftime('%H:%M:%S')}] Total time: {overall_time:.2f}s")
+    print(f"[{time.strftime('%H:%M:%S')}] Breakdown:")
+    print(f"[{time.strftime('%H:%M:%S')}]   - Loading: {load_time:.2f}s ({load_time/overall_time*100:.1f}%)")
+    print(f"[{time.strftime('%H:%M:%S')}]   - Searching: {search_time:.2f}s ({search_time/overall_time*100:.1f}%)")
+    print(f"[{time.strftime('%H:%M:%S')}] Results: {len(matches)} matches found")
+    print(f"{'='*60}\n")
     
     return matches
 
@@ -942,7 +1740,12 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
                         para.style = "2-Versuri-centru"
                     except KeyError:
                         pass
-            source_text = f"({match['folder']}, p. {match['page_num']})"
+            # Build source text with title if available
+            title = match.get("title", "")
+            if title:
+                source_text = f"({match['folder']}, {title}, p. {match['page_num']})"
+            else:
+                source_text = f"({match['folder']}, p. {match['page_num']})"
             para = doc.add_paragraph(source_text)
             try:
                 para.style = "4-Sursa text"
@@ -971,6 +1774,25 @@ def open_image(image_path: Path):
             subprocess.run(["xdg-open", str(image_path)])
     except Exception as e:
         messagebox.showerror("Error", f"Failed to open image: {str(e)}")
+
+
+def open_document(doc_path: Path):
+    """Open a document file using the system's default application."""
+    if not doc_path.exists():
+        messagebox.showerror("Error", f"Document not found: {doc_path}")
+        return
+    
+    try:
+        system = platform.system()
+        if system == "Darwin":  # macOS
+            subprocess.run(["open", str(doc_path)])
+        elif system == "Windows":
+            import os
+            os.startfile(str(doc_path))
+        else:  # Linux and others
+            subprocess.run(["xdg-open", str(doc_path)])
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open document: {str(e)}")
 
 
 def format_quote_with_bold(quote_text: str, search_words: list) -> str:
@@ -1081,14 +1903,20 @@ def create_results_window(search_term: str = ""):
     header_frame = tk.Frame(results_window, bg=COLOR_BACKGROUND, pady=10)
     header_frame.pack(fill=tk.X, padx=15)
     
-    results_title_label = tk.Label(
+    results_title_label = tk.Text(
         header_frame,
-        text="📋 Rezultate Căutare",
         font=("Arial", 36, "bold"),
         bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
+        fg=COLOR_TEXT,
+        height=1,
+        wrap=tk.WORD,
+        relief=tk.FLAT,
+        padx=0,
+        pady=0
     )
     results_title_label.pack(anchor="w")
+    results_title_label.insert("1.0", "📋 Rezultate Căutare")
+    results_title_label.config(state=tk.DISABLED)
     
     # Results container
     results_container = tk.Frame(results_window, bg=COLOR_BACKGROUND)
@@ -1136,9 +1964,40 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     # Create new results window with search term
     create_results_window(search_term)
     
-    # Update title with result count
+    # Update title with result count and search terms
     num_results = len(matches)
-    results_title_label.config(text=f"📋 Rezultate Căutare ({num_results})")
+    search_words = search_term.split()
+    
+    # Enable text widget for editing
+    results_title_label.config(state=tk.NORMAL)
+    results_title_label.delete("1.0", tk.END)
+    
+    # Insert base text
+    results_title_label.insert("1.0", "📋 Rezultate Căutare ")
+    
+    # Insert search terms in bold
+    for i, word in enumerate(search_words):
+        # Get position before inserting word
+        start_pos = results_title_label.index(tk.END)
+        # Insert the word
+        results_title_label.insert(tk.END, word)
+        # Get position after inserting word
+        end_pos = results_title_label.index(tk.END)
+        # Apply bold formatting to the word
+        results_title_label.tag_add("bold", start_pos, end_pos)
+        
+        # Add comma and space if not last word
+        if i < len(search_words) - 1:
+            results_title_label.insert(tk.END, ", ")
+    
+    # Insert count
+    results_title_label.insert(tk.END, f" ({num_results} citate)")
+    
+    # Configure bold tag
+    results_title_label.tag_config("bold", font=("Arial", 36, "bold"))
+    
+    # Make read-only
+    results_title_label.config(state=tk.DISABLED)
     
     # Clear existing results
     for widget in results_scrollable_frame.winfo_children():
@@ -1148,7 +2007,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         no_results_label = tk.Label(
             results_scrollable_frame,
             text="Nu s-au găsit rezultate.",
-            font=("Arial", 24),
+            font=("Arial", 20),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT
         )
@@ -1158,17 +2017,6 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     # Clear match checkboxes list
     global match_checkboxes
     match_checkboxes = []
-    
-    # Create header row
-    header_frame = tk.Frame(results_scrollable_frame, bg=COLOR_SHELF, relief=tk.RAISED, bd=2)
-    header_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
-    
-    # Checkbox column header
-    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Volume", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)  # Space for button
-    tk.Label(header_frame, text="Pagina", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5)
-    tk.Label(header_frame, text="Citat", font=("Arial", 26, "bold"), bg=COLOR_SHELF, fg="white").pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
     
     # Get search words for highlighting
     search_words = search_term.split()
@@ -1210,17 +2058,49 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Update display when variable changes
         checkbox_var.trace_add("write", update_checkbox_display)
         
+        # Create a frame for volume and title (stacked vertically)
+        volume_title_frame = tk.Frame(row_frame, bg=COLOR_BACKGROUND)
+        volume_title_frame.pack(side=tk.LEFT, padx=5, pady=5)
+        
         # Volume name
         volume_label = tk.Label(
-            row_frame,
+            volume_title_frame,
             text=match["folder"],
-            font=("Arial", 24),
+            font=("Arial", 20),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             anchor="w",
             wraplength=200
         )
-        volume_label.pack(side=tk.LEFT, padx=5, pady=5)
+        volume_label.pack(anchor="w")
+        
+        # Title (if available) - displayed under volume name
+        title = match.get("title", "")
+        if title:
+            title_label = tk.Label(
+                volume_title_frame,
+                text=title,
+                font=("Arial", 18, "italic"),
+                bg=COLOR_BACKGROUND,
+                fg=COLOR_ACCENT,
+                anchor="w",
+                wraplength=300
+            )
+            title_label.pack(anchor="w", pady=(2, 0))
+            
+            # Code (if available) - displayed under title
+            code = match.get("code", "")
+            if code:
+                code_label = tk.Label(
+                    volume_title_frame,
+                    text=code,
+                    font=("Arial", 16),
+                    bg=COLOR_BACKGROUND,
+                    fg=COLOR_TEXT,
+                    anchor="w",
+                    wraplength=300
+                )
+                code_label.pack(anchor="w", pady=(2, 0))
         
         # Check if image exists (fallback: don't show page or button if image doesn't exist)
         image_exists = match.get("image_exists", True)  # Default to True for backward compatibility
@@ -1230,12 +2110,12 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             def make_open_button(match_data):
                 btn = tk.Button(
                     row_frame,
-                    text="📷 Deschide",
-                    font=("Arial", 22),
+                    text="📷",
+                    font=("Arial", 18),
                     bg=COLOR_BOOK,
                     fg=COLOR_TEXT,
                     relief=tk.RAISED,
-                    padx=10,
+                    padx=8,
                     pady=5,
                     cursor="hand2",
                     command=lambda: open_match_image(match_data)
@@ -1248,8 +2128,8 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             # Page number
             page_label = tk.Label(
                 row_frame,
-                text=str(match["page_num"]),
-                font=("Arial", 24),
+                text=f"p. {match['page_num']}",
+                font=("Arial", 20),
                 bg=COLOR_BACKGROUND,
                 fg=COLOR_TEXT
             )
@@ -1340,7 +2220,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Create a Text widget for formatted quote (supports bold)
         quote_text_widget = tk.Text(
             row_frame,
-            font=("Arial", 24),
+            font=("Arial", 20),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             height=4,
@@ -1376,7 +2256,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                     end_pos = f"1.0+{char_count + len(quote_words_list[i])}c"
                     quote_text_widget.tag_add("bold", start_pos, end_pos)
         
-        quote_text_widget.tag_config("bold", font=("Arial", 24, "bold"))
+        quote_text_widget.tag_config("bold", font=("Arial", 20, "bold"))
         quote_text_widget.config(state=tk.DISABLED)  # Make read-only after formatting
     
     # Update scroll region
@@ -1393,7 +2273,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Add export button
         export_btn = tk.Button(
             export_button_frame,
-            text="📄 Exportă la DOCX",
+            text="📄 Creează raport",
             command=lambda: export_selected_to_docx(search_term),
             bg=COLOR_SHELF,
             fg="white",
@@ -1506,12 +2386,47 @@ def export_selected_to_docx(search_term: str):
                     except KeyError:
                         pass
             
-            source_text = f"({match['folder']}, p. {match['page_num']})"
-            para = doc.add_paragraph(source_text)
+            # Get title and code from match (exactly as displayed in table)
+            title = match.get("title", "")
+            code = match.get("code", "")
+            volume_title = match.get("folder", "")
+            page_num = match.get("page_num", "")
+            
+            # Capitalize only first letter of title
+            if title:
+                title = title[0].upper() + title[1:].lower() if len(title) > 0 else title
+            
+            # First line: TITLE (ITALIC) — (em dash) VOLUME TITLE, p. PAGE NUMBER (Arial 10)
+            if title:
+                title_para = doc.add_paragraph()
+                # Apply style first
+                try:
+                    title_para.style = "3-Sursa text"
+                except KeyError:
+                    pass
+                # Then add content with formatting
+                title_run = title_para.add_run(title)
+                title_run.italic = True
+                title_para.add_run(f" — {volume_title}, p. {page_num}")
+            else:
+                # If no title, just show volume and page
+                title_para = doc.add_paragraph(f"{volume_title}, p. {page_num}")
+                # Apply style first
+                try:
+                    title_para.style = "3-Sursa text"
+                except KeyError:
+                    pass
+            
+            # Second line: THE CODE / CODES (Arial 10)
+            # Always add code line, use "qqq" if no code found
+            code_text = code if code else "qqq"
+            code_para = doc.add_paragraph(code_text)
+            # Apply style first
             try:
-                para.style = "4-Sursa text"
+                code_para.style = "3-Sursa text"
             except KeyError:
                 pass
+            
             doc.add_paragraph()
         
         # Generate filename from search term
@@ -1540,11 +2455,73 @@ def export_selected_to_docx(search_term: str):
         # Remember the directory for next time (persists across app restarts)
         save_last_export_dir(str(Path(save_path).parent))
         
-        # Show success message
-        messagebox.showinfo(
-            "Success",
-            f"Report exported:\n{save_path}\n\n{len(selected_matches)} result(s) exported."
+        # Show success message with DESCHIDE button
+        success_dialog = tk.Toplevel(root)
+        success_dialog.title("Success")
+        success_dialog.configure(bg=COLOR_BACKGROUND)
+        success_dialog.transient(root)
+        success_dialog.grab_set()
+        
+        # Message label
+        msg_text = f"Report exported:\n{save_path}\n\n{len(selected_matches)} result(s) exported."
+        msg_label = tk.Label(
+            success_dialog,
+            text=msg_text,
+            font=("Arial", 20),
+            bg=COLOR_BACKGROUND,
+            fg=COLOR_TEXT,
+            justify=tk.LEFT,
+            padx=20,
+            pady=20
         )
+        msg_label.pack()
+        
+        # Button frame
+        button_frame = tk.Frame(success_dialog, bg=COLOR_BACKGROUND)
+        button_frame.pack(pady=10)
+        
+        # DESCHIDE button
+        deschide_btn = tk.Button(
+            button_frame,
+            text="📄 DESCHIDE",
+            command=lambda: [open_document(Path(save_path)), success_dialog.destroy()],
+            bg=COLOR_SHELF,
+            fg="white",
+            font=("Arial", 20, "bold"),
+            relief=tk.RAISED,
+            padx=15,
+            pady=8,
+            cursor="hand2"
+        )
+        deschide_btn.pack(side=tk.LEFT, padx=10)
+        
+        # OK button
+        ok_btn = tk.Button(
+            button_frame,
+            text="OK",
+            command=success_dialog.destroy,
+            bg=COLOR_BOOK,
+            fg=COLOR_TEXT,
+            font=("Arial", 20, "bold"),
+            relief=tk.RAISED,
+            padx=15,
+            pady=8,
+            cursor="hand2"
+        )
+        ok_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Center the dialog after widgets are packed
+        success_dialog.update_idletasks()
+        dialog_width = success_dialog.winfo_width()
+        dialog_height = success_dialog.winfo_height()
+        screen_width = success_dialog.winfo_screenwidth()
+        screen_height = success_dialog.winfo_screenheight()
+        x = (screen_width // 2) - (dialog_width // 2)
+        y = (screen_height // 2) - (dialog_height // 2)
+        success_dialog.geometry(f"+{x}+{y}")
+        
+        # Focus on the dialog
+        success_dialog.focus_set()
     except Exception as e:
         # Show user-friendly error dialog
         messagebox.showerror(

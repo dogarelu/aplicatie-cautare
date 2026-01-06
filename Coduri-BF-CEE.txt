@@ -1,0 +1,903 @@
+﻿      Corectat mm - 7 mai 2013
+1. Amzulescu - Balada familială
+     
+
+BF 1 - Soarele și Luna • Tip I - [Nunta Soarelui]1
+BF 1 - Soarele și Luna • Tip II - [Cununia fraților] 2
+
+BF 2 - Cicoarea 3 
+BF 3 - Corbul și Vântul 4 
+
+BF 4 - Trei fete surori • Tip I - [Trei surori la flori] 5
+BF 4 - Trei fete surori • Tip II - [Popa cel de piatră] 6
+
+BF 5 - Voinicul rănit  • Tip I - [Maica bătrână] 7
+BF 5 - Voinicul rănit  • Tip II - [Moartea voinicului] 8
+BF 5 - Voinicul rănit  • Tip III - [Credința corbului] 9
+
+BF 6 - Voica 10 
+BF 7 - Vâlcu și Ciuma 11 
+BF 8 - Dăscal-Păscal12
+BF 9 - Jăman-crai13
+BF 10 - Broasca-Roasca14
+BF 11 - Calul împărătesc15
+BF 12 - Fata furată de zmei în șezătoare16
+BF 13 - Petcana17
+BF 14 - Rădonia18
+BF 15 - Tătarii și robii19
+BF 16 - Agușiță al lui Topală20
+BF 17 - Agușiță, turc sărac21
+BF 18 - Ibraim22
+BF 19 - A lui Stănel23
+BF 20 - Rujălina24
+BF 21 - Strigă Iacob25
+BF 22 - Bujor26
+BF 23 - Ilie Haita27
+BF 24 - Costea haiducul28
+BF 25 - Cântec haiducesc29
+BF 26 - Pocriș30
+BF 27 - Stan31
+BF 28 - A lui Rădișor32
+BF 29 - Buflia33
+BF 30 - A  lui Nistorel34
+BF 31 - A lui Ilie și Bargan35
+BF 32 - Frundzî verdi păltinel36
+BF 33 - A lui Naftal37
+BF 34 - Necșan38
+BF 35 - A lui Hatmanŕ39
+BF 36 - A lui Băltișăl40
+BF 37 - Bustui41
+BF 38 - Petreanu42
+BF 39 - Voinicii codrului43
+BF 40 - Arâmbașa și ficiorii de țară44
+BF 41 - Harimbașa și potera45
+BF 42 - Jurgiu vălișoreanul și Ilie câlniceanul46
+BF 43 - Haiducul Niță47
+BF 44 - Luniță, luniță48
+BF 45 - Cântecul chirigiului49
+BF 46 - Petre50
+BF 47 - Cântecul lui Radu51
+BF 48 - A lu Ghiță Zaharia52
+BF 49 - Năchită53
+BF 50 - Manea54
+BF 51 - Terente55
+BF 52 - Crâșmărița56
+BF 53 - Hora lui Cercel57
+BF 54 - Căpitanul Trandafir58
+BF 55 - A lu Adam Niamțu59
+BF 56 - Miorița60
+BF 57 - Ciobanul care și-a pierdut oile61
+BF 58 - Ciobanul care și-a băut turma62
+BF 59 - Pe un munte nalt și verde63
+BF 60 - Dolina64
+BF 61 - Cânticul ciobanului cari s-o făcut haiduc65
+BF 62 - Cântic hoțăsc66
+BF 63 - Stâna prădată67
+BF 64 - Păcurarul si Fata-pădurei68
+BF 65 - Horea lui Ion Berciu69
+BF 66 - Mircea și Codrea70
+BF 67 - Codreanu71
+BF 68 - Voina72
+BF 69 - Ciobanul fură fata crâșmarului73
+BF 70 - Meșterul Manole74
+BF 71 - Dobrișan75
+BF 72 - Mircea ciobănașul76
+BF 73 - Radu-vodă și Drăgan77
+BF 74 - Vartici78
+BF 75 - Nourel și Calapod paharnicul79
+BF 76 - Dediu (Gegiu) și Dragna (Drajna)80
+BF 77 - Iordăchiță al Lupului81
+BF 78 - Ștefan-vodă și vlădica Iuon82
+BF 79 - Ștefan-vodă și Gegiu83
+BF 80 - Vintilă-vodă84
+BF 81 - Ștefănuț-vodă85
+BF 82 - Iancu-vodă86
+BF 83 - Mogoș vornicul87
+BF 84 - Cântecul lui Prâscoveanu88
+BF 85 - Enea vameș-mare89
+BF 86 - Argialâul90
+BF 87 - Armaș Dragomir91
+BF 88 - Sâiu, pârcălabul de Bârlad92
+BF 89 - Inelul și corbul93
+BF 90 - Mateaș-crai94
+BF 91 - Brumărelul95
+
+BF 92 - Metamorfoze • Tip I - Logodnicii nefericiți96
+BF 92 - Metamorfoze • Tip II - Cucul și Turturica97
+BF 92 - Metamorfoze • Tip III - Mierla și Sturzul98
+BF 92 - Metamorfoze • Tip IV - Iubitul (soțul) urât 99
+BF 92 - Metamorfoze • Tip V - Fata stejarului (cetinii) și feciorul bradului 100
+BF 92 - Metamorfoze • Tip VI - Voina și mândra lui 101
+
+
+BF 93 - Mândra semeață - înșelată • Tip I - Iencea Sibiencea102
+BF 93 - Mândra semeață - înșelată • Tip II - Călina-Mălina103
+
+BF 94 - Vălean104
+
+BF 95 - Proba iubirii • Tip I - Milea105
+BF 95 - Proba iubirii • Tip II - Rada106
+BF 95 - Proba iubirii • Tip III - Iana Ghizuleana107
+BF 95 - Proba iubirii • Tip IV - Întemnițatul și iubita108
+BF 95 - Proba iubirii • Tip V - Întemnițatul părăsit de mândra109
+
+BF 96 - Voinicel străin110
+
+BF 97 - Două surățele • Tip I - Conflict erotic (Cumnățelele)111
+BF 97 - Două surățele • Tip II - Contrast regional: moldoveanca (vlăsceanca, armanca) și mocanca)112
+BF 97 - Două surățele • Tip III - Contrast social: bogata și săraca113
+
+BF 98 - Mândra părăsită114
+
+BF 99 - Blestemul mândrei • Tip I - [Mândra părăsită] 115
+BF 99 - Blestemul mândrei • Tip II - [Mândra părăsită și înșelată] 116
+
+BF 100 - Mireasa moartă117
+BF 101 - Mirele mort118
+
+BF 102 - Leacul dragostei • Tip I - Leacul voinicului (sau drăguței) 119
+BF 102 - Leacul dragostei • Tip II - Boala fetei120
+BF 102 - Leacul dragostei • Tip III - Leacul adevărat121
+
+BF 103 - Rădița122
+BF 104 - Todiran123
+BF 105 - La biserica (fântâna cea) de piatră124
+BF 106 - Mândra din Muncel125
+BF 107 - Voinicul și mândra moartă126
+BF 108 - Cântecul Crișului127
+
+BF 109 - Fata adormită - furată • Tip I - D-aba gagă128
+BF 109 - Fata adormită - furată • Tip II - Flăcăul răpește pe fata adormită și roagă Zorile, Soarele, Ceața să nu-l dea în vileag129
+
+BF 110 - Năiță130
+BF 111 - Di la Odobești la dial131
+BF 112 - Fata fetelor132
+BF 113 - Năzdravânul133
+BF 114 - Sfârșitul drăguței ș-a drăguțului înșelător134
+BF 115 - Lorinte135
+BF 116 - Mândrul lecuit136
+BF 117 - Petrea Bradului137
+BF 118 - Popa Ilie138
+BF 119 - Răzbunarea139
+BF 120 - Frunză verde de pe baltă140
+BF 121 - Dorul ostașului141
+BF 122 - Voinicul și vulturul142
+BF 123 - Osândiții143
+BF 124 - Pe-o vale, pe-o cărare144
+BF 125 - Cântătura Lenuțî145
+BF 126 - Mustrarea fetei146
+BF 127 - Fata Radului147
+BF 128 - Moartea drăguței148
+BF 129 - Fata răpită149
+
+BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia)150
+BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia). Subtip: Trecere către variantele din Transilvania - Moldova151
+BF 130 - Nevasta vândută • Tip II - De obicei, fata Banului, vândută din cauza soacrei rele (Transilvania)152
+BF 130 - Nevasta vândută • Tip III - Bărbatul rău, bețiv și cu datorii, sau fără motivare (Moldova)153
+
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 1: Hoții îi cer să lase pruncul154
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 2: Pruncul crescut de mama cucului își recunoaște mama, birtășița hoților 155
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 3: Trebuind să treacă o apă, podarii (luntrașii, popi-preoței) îi cer sărutări drept vamă. Nevasta îi refuză și trece prin vad, apoi își lasă pruncul (uneori e urmărită de soț) 156
+BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 1: Este iertată, iar amantul, ucis 157
+BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 2: Pedepsită de soț (arsă de vie sau vândută) 158
+BF 131 - Nevasta fugită • Tip III - Amestec de motive din tipurile I și II. (Fuge cu amantul, podarii îi cer vamă. Pruncul părăsit nu o recunoaște.) 159
+
+BF 132 - Chira badii, Chiră160
+BF 133 - Moșneagul161
+
+BF 134 - Femeia necredincioasă • Tip I - [Soția adulterină ucisă, amantul iertat] 162
+BF 134 - Femeia necredincioasă • Tip II - [Soția adulterină și amantul, bătuți] 163
+
+BF 135 - Oancea chirigiul și Vlaicu pârcălabul (Neguța)164
+BF 136 - Fata amăgită de țigan165
+BF 137 - Fata măritată după hoț166
+BF 138 - Stanca cu Tudor167
+BF 139 - Despărțirea168
+BF 140 - Jicmond Craiul și Moțoi din Făgăraș169
+BF 141 - Frundzî verdi ș-on harbuz170
+BF 142 - Frundză verdi păr uscat171
+BF 143 - Trei tălhari de ghenerari172
+BF 144 - Nița și drăguții173
+BF 145 - Mama arsă de vie174
+BF 146 - Raita cătana175
+BF 147 - Dinu, om sărac176
+BF 148 - Tudor Dobrogean177
+
+BF 149 - Inelul și năframa • Tip I - Crăișorul; soția e persecutată de socru 178
+BF 149 - Inelul și năframa • Tip II - Fecior de gândac - fată de om sărac; mama feciorului o persecută 179
+BF 149 - Inelul și năframa • Tip III - Fata slujnică, doamna o persecută 180
+
+BF 150 - Soacra rea181
+BF 151 - Fata blestemată - pasăre pribeagă182
+BF 152 - Tâlharul și mamă-sa183
+BF 153 - Stoican184
+BF 154 - Blestemul185
+BF 155 - Dănuță186
+BF 156 - Manole187
+BF 157 - Dedel188
+BF 158 - Iliana din Ardeal189
+BF 159 - Ianoș-crai și Anuța190
+BF 160 - La râul de roauă191
+BF 161 - Blestemul mamei192
+BF 162 - Calul aduce vestea morții stăpânului193
+BF 163 - Fata întemnițată194
+BF 164 - Soacra otrăvește nora adulteră195
+BF 165 - Pătru ăl cu peștele196
+BF 166 - Stoian voivoda197
+BF 167 - Ursitoarea198
+BF 168 - Fata fugită (urmărită de frați)199
+BF 169 - Sora otrăvind fratele200
+BF 170 - Frații întemnițați și sora201
+BF 171 - Gheorghe și Iosif202
+BF 172 - Sora se plânge fratelui de necazurile căsniciei203
+BF 173 - Ancuța204
+     
+     
+2. Amzulescu - Cântecul Epic eroic
+     
+     
+
+CEE 1 - Gerul 205
+CEE 2 - Sîla-Samodiva si Dălea (Bogdan)-Dămian 206 
+CEE 3 - Scorpia 207 
+CEE 4 - Trei frați cu nouă zmei 208 
+CEE 5 - Iovan Iorgovan 209 
+CEE 6 - Șarpele 210 
+CEE 7 - Antofiță al lui Vioară 211 
+
+CEE 8 - Novac și zâna • Tip I - [Zâna războinică]212
+CEE 8 - Novac și zâna • Tip II - [Zâna temătoare]213
+
+CEE 9 - Novac. Însurătoarea lui Gruia cu fata sălbatică214
+CEE 10 - Novac. Gruia și șarpele215
+CEE 11 - Novac și Dîrvij216
+CEE 12 - Copilaș de turc217
+CEE 13 - Mizil-crai218
+CEE 14 - Fata de frânc219
+CEE 15 - Letinul bogat220
+CEE 16 - Voinicul adormit 221
+CEE 17 - Trei crai 222
+CEE 18 - Trei lebede223
+CEE 19 - Ion Botezătorul (Sfânta Vineri)224
+CEE 20 - Ardiu-crăișor225
+CEE 21 - Ciocârlanul226
+CEE 22 - Arian al mic227
+CEE 23 - Ghiol Dumitru228
+CEE 24 - Gruicea229
+CEE 25 - Deli-Marcu. Fratele lui Negru-vodă230
+CEE 26 - Andronim și Filana231
+
+CEE 27 - Novac. Gruia captiv în Țarigrad • Tip I - [Gruia în temniță]232
+CEE 27 - Novac. Gruia captiv în Țarigrad • Tip II - [Gruia la spânzurătoare]233
+
+CEE 28 - Novac. Anița (Lidva, Libra) crâșmărița234
+
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip I - Fata Cadiului235
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip II - Fata împăratului236
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip III - Fata din Dodrin237
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip IV - Fata de latin din Buda238
+
+
+CEE 30 - Novac. Gruia la arat239
+CEE 31 - Novac. Gruia... femeie și turcii240
+CEE 32 - Novac vinde pe Gruia241
+CEE 33 - Novac. Turcul și Novăceștii242
+CEE 34 - Novac și Balaban243
+CEE 35 - Novac. Gruia scapă pe Novac legat de turci244
+CEE 36 - Novac și negustorii245
+CEE 37 - Doicin bolnavul246
+CEE 38 - Marcu viteazul247
+CEE 39 - Iancul Mare248
+CEE 40 - Pătru haiducul249
+CEE 41 - Tănislav250
+CEE 42 - Badiu cârciumarul251
+CEE 43 - Banul252
+CEE 44 - Marcu253
+CEE 45 - Ioneasa cârciumăreasa254
+CEE 46 - Chira-Chiralina255
+CEE 47 - Ilincuța Șandrului256
+CEE 48 - Corbac257
+CEE 49 - Serb-sărac258
+CEE 50 - Fecioraș de sîrb259
+CEE 51 - Brăilenii260
+CEE 52 - Niculca261
+CEE 53 - Stan al lui Stăvrui262
+CEE 54 - Goia263
+CEE 55 - Dragu264
+CEE 56 - Gheorghiță Zătreanu265
+CEE 57 - A lui Șoimănel266
+CEE 58 - Ana Ardeleana267
+CEE 59 - Manuilă și Mustafa268
+CEE 60 - Marcu iagărul269
+CEE 61 - Iancu și turcul270
+CEE 62 - Sora și fratele271
+CEE 63 - Stoian bulibașa272
+CEE 64 - Vidu țăranul273
+CEE 65 - Rădoiță274
+CEE 66 - Goescu275
+CEE 67 - Aiduc Velcu276
+CEE 68 - Stângă277
+CEE 69 - Pătru di la Izvor278
+CEE 70 - Roman copilul279
+CEE 71 - Cerchez280
+CEE 72 - Șiret pârcălabul281
+CEE 73 - Vișina282
+CEE 74 - Moldovean Dobrogean283
+CEE 75 - Român Grue Grozovanul284
+CEE 76 - Buica Becheanu285
+CEE 77 - Cântecul lui Bibea Cucu286
+CEE 78 - Barbă haiducul287
+CEE 79 - Dumitru dobrogeanu288
+CEE 80 - Velea viteazul289
+CEE 81 - A Gruiului290
+CEE 82 - Vizercan și porumbul291
+CEE 83 - Cântecu lu Isirim bogatu292
+CEE 84 - Radu și tătarii293
+CEE 85 - Corbea294
+CEE 86 - Toma Alimoș295
+CEE 87 - Mihu Copilul296
+CEE 88 - Miu haiducul297
+CEE 89 - Golea298
+CEE 90 - Baba Sârba299
+CEE 91 - Stanciu al Bratului (Voica Bălaca)300
+
+CEE 92 - Petre Busuioc • Tip I - [yyy Fuga haiducului]301
+CEE 92 - Petre Busuioc • Tip II - [Potera înfrântă/păcălită]302
+
+CEE 93 - Pătru Frunte-lată303
+CEE 94 - Bogatul și săracul304
+
+CEE 95 - Țăranul și ciocoiul • Tip I - [Ciocoiul ciomăgit]305
+CEE 95 - Țăranul și ciocoiul • Tip II - [Audiență la palat yyy]306
+
+CEE 96 - Iancu Jianu307
+CEE 97 - Tunsul308
+CEE 98 - Gheorghelaș309
+CEE 99 - Ion ăl Mare310
+CEE 100 - Radu Anghel311
+CEE 101 - Cântecul lui Radu312
+CEE 102 - Buruleanu313
+CEE 103 - Muscu314
+CEE 104 - Petrea Cârtoc315
+CEE 105 - Bolbocean316
+CEE 106 - Botea317
+CEE 107 - Bahnă318
+CEE 108 - Ion Pietrariu319
+CEE 109 - Dragoș320
+CEE 110 - Codău321
+CEE 111 - Pantelimon322
+CEE 112 - Coroi323
+CEE 113 - Darie324
+CEE 114 - Vasile cel Mare325
+CEE 115 - Pintea viteazul326
+CEE 116 - Vili327
+CEE 117 - Dobre haiducu328
+CEE 118 - Stângu329
+CEE 119 - Onea și Coțofeanca330
+CEE 120 - Cântecul lui Petrescu331
+CEE 121 - Petre Vâlcean332
+CEE 122 - Dragu333
+CEE 123 - Burcea334
+CEE 124 - Radu Groșanu335
+CEE 125 - Codreanu336
+CEE 126 - Coman337
+CEE 127 - Cântecul lui Păun haiducul338
+CEE 128 - Cernea339
+CEE 129 - Manea haiducul340
+CEE 130 - Fulga și Budac341
+CEE 131 - Căpitanu342
+CEE 132 - Pătru logofătu343
+CEE 133 - Răducanu344
+CEE 134 - Comănac345
+CEE 135 - Petru haiducul346
+CEE 136 - La cârciuma din pădure347
+CEE 137 - Șogor348
+CEE 138 - Voicu haiducul349
+CEE 139 - Terente haiducul350
+CEE 140 - Gruian351
+CEE 141 - Stancu Lupu352
+CEE 142 - Nedea voinicul353
+CEE 143 - Coste354
+CEE 144 - Cântecul lui Iorgovan355
+CEE 145 - Iancul356
+CEE 146 - Lupul357
+CEE 147 - Stanciu358
+CEE 148 - Răscolman359
+CEE 149 - Bugean360
+CEE 150 - Frundzî verdi di-o răcitî361
+CEE 151 - A lui Mnihăiță362
+CEE 152 - A lui Costin363
+CEE 153 - Călinaș și Arsinel364
+CEE 154 - A Voicului365
+CEE 155 - Gheorghilaș366
+CEE 156 - Floria367
+CEE 157 - Voicu368
+CEE 158 - La curțile Vâlcului369
+CEE 159 - Mihai370
+CEE 160 - Ion a Solcanului371
+CEE 161 - Pribegii la podu Veneției372
+CEE 162 - Tomoioagă373
+CEE 163 - Cetan374
+CEE 164 - Niculiță375
+CEE 165 - Budiu376
+CEE 166 - Harambașa Hănțilă377
+CEE 167 - Luca378
+CEE 168 - Neacșu haiducu379
+CEE 169 - Crețu haiducul380
+CEE 170 - Codreanul și mocanul381
+CEE 171 - Voinicul și furul382
+CEE 172 - Stan din Bărăgan383
+CEE 173 - Ghimiș384
+CEE 174 - Cântecul lui Sbangă haiducu385
+CEE 175 - Cântecul lui Săcală386
+CEE 176 - Dăian387
+CEE 177 - Zdrelea388
+CEE 178 - Mărunțelu389
+CEE 179 - Crețu390
+CEE 180 - Alde Nae din Vădeni391
+CEE 181 - Păun392
+CEE 182 - Cântecul lui Albulescu393
+CEE 183 - Cântecul lui Niță al Lupului394
+CEE 184 - Bețigaș395
+CEE 185 - Iortoman396
+CEE 186 - Gherghișan397
+CEE 187 - Ghiorghe, Cosma și Maftei398
+CEE 188 - Pârlici399
+CEE 189 - Hoții și popa din Broșteni400
+CEE 190 - Todorică și Florica401
+CEE 191 - A lui Iosim lotrul402
+CEE 192 - Ciobanul, sora și zmeii (leii, turcii)403
+CEE 193 - Costea și Fulga404
+CEE 194 - Otânceală (Potâncu) haiducul405
+CEE 195 - Șalga406
+CEE 196 - Voinicu și Ianuș Unguru407
+CEE 197 - Ionașcu408
+CEE 198 - Radu Calomfirescu409
+CEE 199 - Căpitanul Nica410
+CEE 200 - Aga Bălăceanu411
+CEE 201 - Constantin Brâncoveanu412
+CEE 202 - Bucă-Bucăleț413
+CEE 203 - Marcu și Filip414
+CEE 204 - Țarul Murad și Radu voivoda415
+CEE 205 - Ghiță Cătănuță416
+CEE 206 - Șoimănel417
+CEE 207 - Stoiniel viteazul418
+CEE 208 - Nicolcea419
+CEE 209 - Gheorghiță Poianu420
+CEE 210 - Rafila421
+CEE 211 - George a lu Molin422
+     
+     
+Xxxxx
+
+
+1 XXXX, Xxxxxx, XX, p. xx..
+2 XXXX, Xxxxxx, XX, p. xx..
+3 XXXX, Xxxxxx, XX, p. xx.
+4 XXXX, Xxxxxx, XX, p. xx..
+5 XXXX, Xxxxxx, XX, p. xx..
+6 XXXX, Xxxxxx, XX, p. xx..
+7 XXXX, Xxxxxx, XX, p. xx..
+8 XXXX, Xxxxxx, XX, p. xx..
+9 XXXX, Xxxxxx, XX, p. xx..
+10 XXXX, Xxxxxx, XX, p. xx..
+11 XXXX, Xxxxxx, XX, p. xx..
+12 XXXX, Xxxxxx, XX, p. xx..
+13 XXXX, Xxxxxx, XX, p. xx..
+14 XXXX, Xxxxxx, XX, p. xx..
+15 XXXX, Xxxxxx, XX, p. xx..
+16 XXXX, Xxxxxx, XX, p. xx..
+17 XXXX, Xxxxxx, XX, p. xx..
+18 XXXX, Xxxxxx, XX, p. xx..
+19 XXXX, Xxxxxx, XX, p. xx..
+20 XXXX, Xxxxxx, XX, p. xx..
+21 XXXX, Xxxxxx, XX, p. xx..
+22 XXXX, Xxxxxx, XX, p. xx..
+23 XXXX, Xxxxxx, XX, p. xx..
+24 XXXX, Xxxxxx, XX, p. xx..
+25 XXXX, Xxxxxx, XX, p. xx..
+26 XXXX, Xxxxxx, XX, p. xx..
+27 XXXX, Xxxxxx, XX, p. xx..
+28 XXXX, Xxxxxx, XX, p. xx..
+29 XXXX, Xxxxxx, XX, p. xx..
+30 XXXX, Xxxxxx, XX, p. xx..
+31 XXXX, Xxxxxx, XX, p. xx..
+32 XXXX, Xxxxxx, XX, p. xx..
+33 XXXX, Xxxxxx, XX, p. xx..
+34 XXXX, Xxxxxx, XX, p. xx..
+35 XXXX, Xxxxxx, XX, p. xx..
+36 XXXX, Xxxxxx, XX, p. xx..
+37 XXXX, Xxxxxx, XX, p. xx..
+38 XXXX, Xxxxxx, XX, p. xx..
+39 XXXX, Xxxxxx, XX, p. xx..
+40 XXXX, Xxxxxx, XX, p. xx..
+41 XXXX, Xxxxxx, XX, p. xx..
+42 XXXX, Xxxxxx, XX, p. xx..
+43 XXXX, Xxxxxx, XX, p. xx..
+44 XXXX, Xxxxxx, XX, p. xx..
+45 XXXX, Xxxxxx, XX, p. xx..
+46 XXXX, Xxxxxx, XX, p. xx..
+47 XXXX, Xxxxxx, XX, p. xx..
+48 XXXX, Xxxxxx, XX, p. xx..
+49 XXXX, Xxxxxx, XX, p. xx..
+50 XXXX, Xxxxxx, XX, p. xx..
+51 XXXX, Xxxxxx, XX, p. xx..
+52 XXXX, Xxxxxx, XX, p. xx..
+53 XXXX, Xxxxxx, XX, p. xx..
+54 XXXX, Xxxxxx, XX, p. xx..
+55 XXXX, Xxxxxx, XX, p. xx..
+56 XXXX, Xxxxxx, XX, p. xx..
+57 XXXX, Xxxxxx, XX, p. xx..
+58 XXXX, Xxxxxx, XX, p. xx..
+59 XXXX, Xxxxxx, XX, p. xx..
+60 XXXX, Xxxxxx, XX, p. xx..
+61 XXXX, Xxxxxx, XX, p. xx..
+62 XXXX, Xxxxxx, XX, p. xx..
+63 XXXX, Xxxxxx, XX, p. xx..
+64 XXXX, Xxxxxx, XX, p. xx..
+65 XXXX, Xxxxxx, XX, p. xx..
+66 XXXX, Xxxxxx, XX, p. xx..
+67 XXXX, Xxxxxx, XX, p. xx..
+68 XXXX, Xxxxxx, XX, p. xx..
+69 XXXX, Xxxxxx, XX, p. xx..
+70 XXXX, Xxxxxx, XX, p. xx..
+71 XXXX, Xxxxxx, XX, p. xx..
+72 XXXX, Xxxxxx, XX, p. xx..
+73 XXXX, Xxxxxx, XX, p. xx..
+74 XXXX, Xxxxxx, XX, p. xx..
+75 XXXX, Xxxxxx, XX, p. xx..
+76 XXXX, Xxxxxx, XX, p. xx..
+77 XXXX, Xxxxxx, XX, p. xx..
+78 XXXX, Xxxxxx, XX, p. xx..
+79 XXXX, Xxxxxx, XX, p. xx..
+80 XXXX, Xxxxxx, XX, p. xx..
+81 XXXX, Xxxxxx, XX, p. xx..
+82 XXXX, Xxxxxx, XX, p. xx..
+83 XXXX, Xxxxxx, XX, p. xx..
+84 XXXX, Xxxxxx, XX, p. xx..
+85 XXXX, Xxxxxx, XX, p. xx..
+86 XXXX, Xxxxxx, XX, p. xx..
+87 XXXX, Xxxxxx, XX, p. xx..
+88 XXXX, Xxxxxx, XX, p. xx..
+89 XXXX, Xxxxxx, XX, p. xx..
+90 XXXX, Xxxxxx, XX, p. xx..
+91 XXXX, Xxxxxx, XX, p. xx..
+92 XXXX, Xxxxxx, XX, p. xx..
+93 XXXX, Xxxxxx, XX, p. xx..
+94 XXXX, Xxxxxx, XX, p. xx..
+95 XXXX, Xxxxxx, XX, p. xx..
+96 XXXX, Xxxxxx, XX, p. xx..
+97 XXXX, Xxxxxx, XX, p. xx..
+98 XXXX, Xxxxxx, XX, p. xx..
+99 XXXX, Xxxxxx, XX, p. xx..
+100 XXXX, Xxxxxx, XX, p. xx..
+101 XXXX, Xxxxxx, XX, p. xx..
+102 XXXX, Xxxxxx, XX, p. xx..
+103 XXXX, Xxxxxx, XX, p. xx..
+104 XXXX, Xxxxxx, XX, p. xx..
+105 XXXX, Xxxxxx, XX, p. xx..
+106 XXXX, Xxxxxx, XX, p. xx..
+107 XXXX, Xxxxxx, XX, p. xx..
+108 XXXX, Xxxxxx, XX, p. xx..
+109 XXXX, Xxxxxx, XX, p. xx..
+110 XXXX, Xxxxxx, XX, p. xx..
+111 XXXX, Xxxxxx, XX, p. xx..
+112 XXXX, Xxxxxx, XX, p. xx..
+113 XXXX, Xxxxxx, XX, p. xx..
+114 XXXX, Xxxxxx, XX, p. xx..
+115 XXXX, Xxxxxx, XX, p. xx..
+116 XXXX, Xxxxxx, XX, p. xx..
+117 XXXX, Xxxxxx, XX, p. xx..
+118 XXXX, Xxxxxx, XX, p. xx..
+119 XXXX, Xxxxxx, XX, p. xx..
+120 XXXX, Xxxxxx, XX, p. xx..
+121 XXXX, Xxxxxx, XX, p. xx..
+122 XXXX, Xxxxxx, XX, p. xx..
+123 XXXX, Xxxxxx, XX, p. xx..
+124 XXXX, Xxxxxx, XX, p. xx..
+125 XXXX, Xxxxxx, XX, p. xx..
+126 XXXX, Xxxxxx, XX, p. xx..
+127 XXXX, Xxxxxx, XX, p. xx..
+128 XXXX, Xxxxxx, XX, p. xx..
+129 XXXX, Xxxxxx, XX, p. xx..
+130 XXXX, Xxxxxx, XX, p. xx..
+131 XXXX, Xxxxxx, XX, p. xx..
+132 XXXX, Xxxxxx, XX, p. xx..
+133 XXXX, Xxxxxx, XX, p. xx..
+134 XXXX, Xxxxxx, XX, p. xx..
+135 XXXX, Xxxxxx, XX, p. xx..
+136 XXXX, Xxxxxx, XX, p. xx..
+137 XXXX, Xxxxxx, XX, p. xx..
+138 XXXX, Xxxxxx, XX, p. xx..
+139 XXXX, Xxxxxx, XX, p. xx..
+140 XXXX, Xxxxxx, XX, p. xx..
+141 XXXX, Xxxxxx, XX, p. xx..
+142 XXXX, Xxxxxx, XX, p. xx..
+143 XXXX, Xxxxxx, XX, p. xx..
+144 XXXX, Xxxxxx, XX, p. xx..
+145 XXXX, Xxxxxx, XX, p. xx..
+146 XXXX, Xxxxxx, XX, p. xx..
+147 XXXX, Xxxxxx, XX, p. xx..
+148 XXXX, Xxxxxx, XX, p. xx..
+149 XXXX, Xxxxxx, XX, p. xx..
+150 XXXX, Xxxxxx, XX, p. xx..
+151 XXXX, Xxxxxx, XX, p. xx..
+152 XXXX, Xxxxxx, XX, p. xx..
+153 XXXX, Xxxxxx, XX, p. xx..
+154 XXXX, Xxxxxx, XX, p. xx..
+155 XXXX, Xxxxxx, XX, p. xx..
+156 XXXX, Xxxxxx, XX, p. xx..
+157 XXXX, Xxxxxx, XX, p. xx..
+158 XXXX, Xxxxxx, XX, p. xx..
+159 XXXX, Xxxxxx, XX, p. xx..
+160 XXXX, Xxxxxx, XX, p. xx..
+161 XXXX, Xxxxxx, XX, p. xx..
+162 XXXX, Xxxxxx, XX, p. xx..
+163 XXXX, Xxxxxx, XX, p. xx..
+164 XXXX, Xxxxxx, XX, p. xx..
+165 XXXX, Xxxxxx, XX, p. xx..
+166 XXXX, Xxxxxx, XX, p. xx..
+167 XXXX, Xxxxxx, XX, p. xx..
+168 XXXX, Xxxxxx, XX, p. xx..
+169 XXXX, Xxxxxx, XX, p. xx..
+170 XXXX, Xxxxxx, XX, p. xx..
+171 XXXX, Xxxxxx, XX, p. xx..
+172 XXXX, Xxxxxx, XX, p. xx..
+173 XXXX, Xxxxxx, XX, p. xx..
+174 XXXX, Xxxxxx, XX, p. xx..
+175 XXXX, Xxxxxx, XX, p. xx..
+176 XXXX, Xxxxxx, XX, p. xx..
+177 XXXX, Xxxxxx, XX, p. xx..
+178 XXXX, Xxxxxx, XX, p. xx..
+179 XXXX, Xxxxxx, XX, p. xx..
+180 XXXX, Xxxxxx, XX, p. xx..
+181 XXXX, Xxxxxx, XX, p. xx..
+182 XXXX, Xxxxxx, XX, p. xx..
+183 XXXX, Xxxxxx, XX, p. xx..
+184 XXXX, Xxxxxx, XX, p. xx..
+185 XXXX, Xxxxxx, XX, p. xx..
+186 XXXX, Xxxxxx, XX, p. xx..
+187 XXXX, Xxxxxx, XX, p. xx..
+188 XXXX, Xxxxxx, XX, p. xx..
+189 XXXX, Xxxxxx, XX, p. xx..
+190 XXXX, Xxxxxx, XX, p. xx..
+191 XXXX, Xxxxxx, XX, p. xx..
+192 XXXX, Xxxxxx, XX, p. xx..
+193 XXXX, Xxxxxx, XX, p. xx..
+194 XXXX, Xxxxxx, XX, p. xx..
+195 XXXX, Xxxxxx, XX, p. xx..
+196 XXXX, Xxxxxx, XX, p. xx..
+197 XXXX, Xxxxxx, XX, p. xx..
+198 XXXX, Xxxxxx, XX, p. xx..
+199 XXXX, Xxxxxx, XX, p. xx..
+200 XXXX, Xxxxxx, XX, p. xx..
+201 XXXX, Xxxxxx, XX, p. xx..
+202 XXXX, Xxxxxx, XX, p. xx..
+203 XXXX, Xxxxxx, XX, p. xx..
+204 XXXX, Xxxxxx, XX, p. xx..
+205 XXXX, Xxxxxx, XX, p. xx.
+206 XXXX, Xxxxxx, XX, p. xx.
+207 XXXX, Xxxxxx, XX, p. xx..
+208 XXXX, Xxxxxx, XX, p. xx..
+209 XXXX, Xxxxxx, XX, p. xx..
+210 XXXX, Xxxxxx, XX, p. xx..
+211 XXXX, Xxxxxx, XX, p. xx..
+212 XXXX, Xxxxxx, XX, p. xx..
+213 XXXX, Xxxxxx, XX, p. xx..
+214 XXXX, Xxxxxx, XX, p. xx..
+215 XXXX, Xxxxxx, XX, p. xx..
+216 XXXX, Xxxxxx, XX, p. xx..
+217 XXXX, Xxxxxx, XX, p. xx..
+218 XXXX, Xxxxxx, XX, p. xx..
+219 XXXX, Xxxxxx, XX, p. xx..
+220 XXXX, Xxxxxx, XX, p. xx..
+221 XXXX, Xxxxxx, XX, p. xx..
+222 XXXX, Xxxxxx, XX, p. xx..
+223 XXXX, Xxxxxx, XX, p. xx..
+224 XXXX, Xxxxxx, XX, p. xx..
+225 XXXX, Xxxxxx, XX, p. xx..
+226 XXXX, Xxxxxx, XX, p. xx..
+227 XXXX, Xxxxxx, XX, p. xx..
+228 XXXX, Xxxxxx, XX, p. xx..
+229 XXXX, Xxxxxx, XX, p. xx..
+230 XXXX, Xxxxxx, XX, p. xx..
+231 XXXX, Xxxxxx, XX, p. xx..
+232 XXXX, Xxxxxx, XX, p. xx..
+233 XXXX, Xxxxxx, XX, p. xx..
+234 XXXX, Xxxxxx, XX, p. xx..
+235 XXXX, Xxxxxx, XX, p. xx..
+236 XXXX, Xxxxxx, XX, p. xx..
+237 XXXX, Xxxxxx, XX, p. xx..
+238 XXXX, Xxxxxx, XX, p. xx..
+239 XXXX, Xxxxxx, XX, p. xx..
+240 XXXX, Xxxxxx, XX, p. xx..
+241 XXXX, Xxxxxx, XX, p. xx..
+242 XXXX, Xxxxxx, XX, p. xx..
+243 XXXX, Xxxxxx, XX, p. xx..
+244 XXXX, Xxxxxx, XX, p. xx..
+245 XXXX, Xxxxxx, XX, p. xx..
+246 XXXX, Xxxxxx, XX, p. xx..
+247 XXXX, Xxxxxx, XX, p. xx..
+248 XXXX, Xxxxxx, XX, p. xx..
+249 XXXX, Xxxxxx, XX, p. xx..
+250 XXXX, Xxxxxx, XX, p. xx..
+251 XXXX, Xxxxxx, XX, p. xx..
+252 XXXX, Xxxxxx, XX, p. xx..
+253 XXXX, Xxxxxx, XX, p. xx..
+254 XXXX, Xxxxxx, XX, p. xx..
+255 XXXX, Xxxxxx, XX, p. xx..
+256 XXXX, Xxxxxx, XX, p. xx..
+257 XXXX, Xxxxxx, XX, p. xx..
+258 XXXX, Xxxxxx, XX, p. xx..
+259 XXXX, Xxxxxx, XX, p. xx..
+260 XXXX, Xxxxxx, XX, p. xx..
+261 XXXX, Xxxxxx, XX, p. xx..
+262 XXXX, Xxxxxx, XX, p. xx..
+263 XXXX, Xxxxxx, XX, p. xx..
+264 XXXX, Xxxxxx, XX, p. xx..
+265 XXXX, Xxxxxx, XX, p. xx..
+266 XXXX, Xxxxxx, XX, p. xx..
+267 XXXX, Xxxxxx, XX, p. xx..
+268 XXXX, Xxxxxx, XX, p. xx..
+269 XXXX, Xxxxxx, XX, p. xx..
+270 XXXX, Xxxxxx, XX, p. xx..
+271 XXXX, Xxxxxx, XX, p. xx..
+272 XXXX, Xxxxxx, XX, p. xx..
+273 XXXX, Xxxxxx, XX, p. xx..
+274 XXXX, Xxxxxx, XX, p. xx..
+275 XXXX, Xxxxxx, XX, p. xx..
+276 XXXX, Xxxxxx, XX, p. xx..
+277 XXXX, Xxxxxx, XX, p. xx..
+278 XXXX, Xxxxxx, XX, p. xx..
+279 XXXX, Xxxxxx, XX, p. xx..
+280 XXXX, Xxxxxx, XX, p. xx..
+281 XXXX, Xxxxxx, XX, p. xx..
+282 XXXX, Xxxxxx, XX, p. xx..
+283 XXXX, Xxxxxx, XX, p. xx..
+284 XXXX, Xxxxxx, XX, p. xx..
+285 XXXX, Xxxxxx, XX, p. xx..
+286 XXXX, Xxxxxx, XX, p. xx..
+287 XXXX, Xxxxxx, XX, p. xx..
+288 XXXX, Xxxxxx, XX, p. xx..
+289 XXXX, Xxxxxx, XX, p. xx..
+290 XXXX, Xxxxxx, XX, p. xx..
+291 XXXX, Xxxxxx, XX, p. xx..
+292 XXXX, Xxxxxx, XX, p. xx..
+293 XXXX, Xxxxxx, XX, p. xx..
+294 XXXX, Xxxxxx, XX, p. xx..
+295 XXXX, Xxxxxx, XX, p. xx..
+296 XXXX, Xxxxxx, XX, p. xx..
+297 XXXX, Xxxxxx, XX, p. xx..
+298 XXXX, Xxxxxx, XX, p. xx..
+299 XXXX, Xxxxxx, XX, p. xx..
+300 XXXX, Xxxxxx, XX, p. xx..
+301 XXXX, Xxxxxx, XX, p. xx..
+302 XXXX, Xxxxxx, XX, p. xx..
+303 XXXX, Xxxxxx, XX, p. xx..
+304 XXXX, Xxxxxx, XX, p. xx..
+305 XXXX, Xxxxxx, XX, p. xx..
+306 XXXX, Xxxxxx, XX, p. xx..
+307 XXXX, Xxxxxx, XX, p. xx..
+308 XXXX, Xxxxxx, XX, p. xx..
+309 XXXX, Xxxxxx, XX, p. xx..
+310 XXXX, Xxxxxx, XX, p. xx..
+311 XXXX, Xxxxxx, XX, p. xx..
+312 XXXX, Xxxxxx, XX, p. xx..
+313 XXXX, Xxxxxx, XX, p. xx..
+314 XXXX, Xxxxxx, XX, p. xx..
+315 XXXX, Xxxxxx, XX, p. xx..
+316 XXXX, Xxxxxx, XX, p. xx..
+317 XXXX, Xxxxxx, XX, p. xx..
+318 XXXX, Xxxxxx, XX, p. xx..
+319 XXXX, Xxxxxx, XX, p. xx..
+320 XXXX, Xxxxxx, XX, p. xx..
+321 XXXX, Xxxxxx, XX, p. xx..
+322 XXXX, Xxxxxx, XX, p. xx..
+323 XXXX, Xxxxxx, XX, p. xx..
+324 XXXX, Xxxxxx, XX, p. xx..
+325 XXXX, Xxxxxx, XX, p. xx..
+326 XXXX, Xxxxxx, XX, p. xx..
+327 XXXX, Xxxxxx, XX, p. xx..
+328 XXXX, Xxxxxx, XX, p. xx..
+329 XXXX, Xxxxxx, XX, p. xx..
+330 XXXX, Xxxxxx, XX, p. xx..
+331 XXXX, Xxxxxx, XX, p. xx..
+332 XXXX, Xxxxxx, XX, p. xx..
+333 XXXX, Xxxxxx, XX, p. xx..
+334 XXXX, Xxxxxx, XX, p. xx..
+335 XXXX, Xxxxxx, XX, p. xx..
+336 XXXX, Xxxxxx, XX, p. xx..
+337 XXXX, Xxxxxx, XX, p. xx..
+338 XXXX, Xxxxxx, XX, p. xx..
+339 XXXX, Xxxxxx, XX, p. xx..
+340 XXXX, Xxxxxx, XX, p. xx..
+341 XXXX, Xxxxxx, XX, p. xx..
+342 XXXX, Xxxxxx, XX, p. xx..
+343 XXXX, Xxxxxx, XX, p. xx..
+344 XXXX, Xxxxxx, XX, p. xx..
+345 XXXX, Xxxxxx, XX, p. xx..
+346 XXXX, Xxxxxx, XX, p. xx..
+347 XXXX, Xxxxxx, XX, p. xx..
+348 XXXX, Xxxxxx, XX, p. xx..
+349 XXXX, Xxxxxx, XX, p. xx..
+350 XXXX, Xxxxxx, XX, p. xx..
+351 XXXX, Xxxxxx, XX, p. xx..
+352 XXXX, Xxxxxx, XX, p. xx..
+353 XXXX, Xxxxxx, XX, p. xx..
+354 XXXX, Xxxxxx, XX, p. xx..
+355 XXXX, Xxxxxx, XX, p. xx..
+356 XXXX, Xxxxxx, XX, p. xx..
+357 XXXX, Xxxxxx, XX, p. xx..
+358 XXXX, Xxxxxx, XX, p. xx..
+359 XXXX, Xxxxxx, XX, p. xx..
+360 XXXX, Xxxxxx, XX, p. xx..
+361 XXXX, Xxxxxx, XX, p. xx..
+362 XXXX, Xxxxxx, XX, p. xx..
+363 XXXX, Xxxxxx, XX, p. xx..
+364 XXXX, Xxxxxx, XX, p. xx..
+365 XXXX, Xxxxxx, XX, p. xx..
+366 XXXX, Xxxxxx, XX, p. xx..
+367 XXXX, Xxxxxx, XX, p. xx..
+368 XXXX, Xxxxxx, XX, p. xx..
+369 XXXX, Xxxxxx, XX, p. xx..
+370 XXXX, Xxxxxx, XX, p. xx..
+371 XXXX, Xxxxxx, XX, p. xx..
+372 XXXX, Xxxxxx, XX, p. xx..
+373 XXXX, Xxxxxx, XX, p. xx..
+374 XXXX, Xxxxxx, XX, p. xx..
+375 XXXX, Xxxxxx, XX, p. xx..
+376 XXXX, Xxxxxx, XX, p. xx..
+377 XXXX, Xxxxxx, XX, p. xx..
+378 XXXX, Xxxxxx, XX, p. xx..
+379 XXXX, Xxxxxx, XX, p. xx..
+380 XXXX, Xxxxxx, XX, p. xx..
+381 XXXX, Xxxxxx, XX, p. xx..
+382 XXXX, Xxxxxx, XX, p. xx..
+383 XXXX, Xxxxxx, XX, p. xx..
+384 XXXX, Xxxxxx, XX, p. xx..
+385 XXXX, Xxxxxx, XX, p. xx..
+386 XXXX, Xxxxxx, XX, p. xx..
+387 XXXX, Xxxxxx, XX, p. xx..
+388 XXXX, Xxxxxx, XX, p. xx..
+389 XXXX, Xxxxxx, XX, p. xx..
+390 XXXX, Xxxxxx, XX, p. xx..
+391 XXXX, Xxxxxx, XX, p. xx..
+392 XXXX, Xxxxxx, XX, p. xx..
+393 XXXX, Xxxxxx, XX, p. xx..
+394 XXXX, Xxxxxx, XX, p. xx..
+395 XXXX, Xxxxxx, XX, p. xx..
+396 XXXX, Xxxxxx, XX, p. xx..
+397 XXXX, Xxxxxx, XX, p. xx..
+398 XXXX, Xxxxxx, XX, p. xx..
+399 XXXX, Xxxxxx, XX, p. xx..
+400 XXXX, Xxxxxx, XX, p. xx..
+401 XXXX, Xxxxxx, XX, p. xx..
+402 XXXX, Xxxxxx, XX, p. xx..
+403 XXXX, Xxxxxx, XX, p. xx..
+404 XXXX, Xxxxxx, XX, p. xx..
+405 XXXX, Xxxxxx, XX, p. xx..
+406 XXXX, Xxxxxx, XX, p. xx..
+407 XXXX, Xxxxxx, XX, p. xx..
+408 XXXX, Xxxxxx, XX, p. xx..
+409 XXXX, Xxxxxx, XX, p. xx..
+410 XXXX, Xxxxxx, XX, p. xx..
+411 XXXX, Xxxxxx, XX, p. xx..
+412 XXXX, Xxxxxx, XX, p. xx..
+413 XXXX, Xxxxxx, XX, p. xx..
+414 XXXX, Xxxxxx, XX, p. xx..
+415 XXXX, Xxxxxx, XX, p. xx..
+416 XXXX, Xxxxxx, XX, p. xx..
+417 XXXX, Xxxxxx, XX, p. xx..
+418 XXXX, Xxxxxx, XX, p. xx..
+419 XXXX, Xxxxxx, XX, p. xx..
+420 XXXX, Xxxxxx, XX, p. xx..
+421 XXXX, Xxxxxx, XX, p. xx..
+422 XXXX, Xxxxxx, XX, p. xx..
+---------------
+
+------------------------------------------------------------
+
+---------------
+
+------------------------------------------------------------
+
