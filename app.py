@@ -15,30 +15,8 @@ from rapidfuzz.distance import Levenshtein
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-import multiprocessing
-
-# Configure multiprocessing to prevent processes showing in dock (macOS)
-# And prevent GUI initialization in worker processes (Windows)
-if platform.system() == "Darwin":  # macOS
-    # Set multiprocessing start method early to prevent processes showing in dock
-    try:
-        multiprocessing.set_start_method('spawn', force=True)
-    except RuntimeError:
-        # Already set, ignore
-        pass
-elif platform.system() == "Windows":
-    # Windows uses 'spawn' by default, but we need to ensure it's set
-    # This prevents worker processes from re-importing and creating GUI windows
-    try:
-        multiprocessing.set_start_method('spawn', force=True)
-    except RuntimeError:
-        # Already set, ignore
-        pass
-    # Mark this as the main process (not a worker)
-    import os
-    os.environ['MP_MAIN_PROCESS'] = '1'
 
 
 # Global variable to store selected root folder and selected paths
@@ -1342,26 +1320,10 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     return (found_all, best_score, best_start_line, best_end_line, best_matched_words)
 
 
-def _search_single_page_worker(args):
+def _search_single_page(page, norm_query, query_words, query_text, threshold, word_span, exact_order):
     """
-    Worker function for multiprocessing - searches a single page.
-    Must be at module level to be picklable.
-    args: tuple of (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+    Search a single page for matches.
     """
-    # Mark this as a worker process (Windows spawn issue prevention)
-    import os
-    os.environ['MP_MAIN_PROCESS'] = '0'
-    
-    # On macOS, make this process a background process to avoid showing in dock
-    if platform.system() == "Darwin":
-        try:
-            # Set process group to make it a background process (Unix/macOS only)
-            os.setpgrp()
-        except (OSError, AttributeError):
-            # Not available on this system, ignore
-            pass
-    
-    page, norm_query, query_words, query_text, threshold, word_span, exact_order = args
     page_matches = []
     page_lines = page.get("lines", [])
     
@@ -1554,87 +1516,18 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     
     matches = []
     
-    # Prepare arguments for worker function
-    # Use CPU count for optimal parallelization (multiprocessing bypasses GIL)
-    cpu_count = multiprocessing.cpu_count()
-    max_workers = min(len(pages), cpu_count, 4)  # Cap at 4 processes maximum
-    
     search_exec_start = time.perf_counter()
-    # If we have few pages, don't parallelize (overhead not worth it)
-    if len(pages) < 10:
-        print(f"[{time.strftime('%H:%M:%S')}] Using sequential search (few pages)")
-        # Sequential search for small page counts
-        for idx, page in enumerate(pages):
-            args = (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
-            page_matches = _search_single_page_worker(args)
+    print(f"[{time.strftime('%H:%M:%S')}] Using sequential search")
+    # Sequential search - process all pages one by one
+    for idx, page in enumerate(pages):
+        try:
+            page_matches = _search_single_page(page, norm_query, query_words, query_text, threshold, word_span, exact_order)
             matches.extend(page_matches)
             if (idx + 1) % 100 == 0:
                 print(f"[{time.strftime('%H:%M:%S')}]   Searched {idx + 1}/{len(pages)} pages...")
-    else:
-        # On Windows, use threading to avoid spawn/GUI issues
-        # On macOS/Linux, use multiprocessing for better CPU utilization
-        if platform.system() == "Windows":
-            print(f"[{time.strftime('%H:%M:%S')}] Using threading with {max_workers} threads (Windows)")
-            # Parallel search using threading (avoids Windows spawn/GUI issues)
-            completed_count = 0
-            
-            # Prepare all arguments
-            search_args = [
-                (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
-                for page in pages
-            ]
-            
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Submit all page search tasks
-                future_to_page = {
-                    executor.submit(_search_single_page_worker, args): args[0]
-                    for args in search_args
-                }
-                
-                # Collect results as they complete
-                for future in as_completed(future_to_page):
-                    try:
-                        page_matches = future.result()
-                        matches.extend(page_matches)
-                        completed_count += 1
-                        if completed_count % 100 == 0:
-                            print(f"[{time.strftime('%H:%M:%S')}]   Searched {completed_count}/{len(pages)} pages...")
-                    except Exception as e:
-                        # Log error but continue with other pages
-                        print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
-        else:
-            print(f"[{time.strftime('%H:%M:%S')}] Using multiprocessing with {max_workers} processes (CPU cores: {cpu_count})")
-            # Parallel search using multiprocessing (bypasses GIL for CPU-bound work)
-            completed_count = 0
-            
-            # Prepare all arguments
-            search_args = [
-                (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
-                for page in pages
-            ]
-            
-            # Use spawn context (works on both macOS and Windows)
-            # This prevents macOS processes from showing in dock
-            ctx = multiprocessing.get_context('spawn')
-            
-            with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
-                # Submit all page search tasks
-                future_to_page = {
-                    executor.submit(_search_single_page_worker, args): args[0]
-                    for args in search_args
-                }
-                
-                # Collect results as they complete
-                for future in as_completed(future_to_page):
-                    try:
-                        page_matches = future.result()
-                        matches.extend(page_matches)
-                        completed_count += 1
-                        if completed_count % 100 == 0:
-                            print(f"[{time.strftime('%H:%M:%S')}]   Searched {completed_count}/{len(pages)} pages...")
-                    except Exception as e:
-                        # Log error but continue with other pages
-                        print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
+        except Exception as e:
+            # Log error but continue with other pages
+            print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
     
     search_exec_end = time.perf_counter()
     search_exec_time = search_exec_end - search_exec_start
@@ -2958,25 +2851,7 @@ select_folder_button = None
 button = None
 
 def create_gui():
-    """Create and initialize the GUI. Only called in main process."""
-    # Explicit check to prevent GUI creation in worker processes (Windows spawn issue)
-    # On Windows with spawn, worker processes have names like 'SpawnProcess-1', 'SpawnProcess-2', etc.
-    # Only the main process has name 'MainProcess'
-    import os
-    
-    # Check 1: Process name check
-    try:
-        current_process = multiprocessing.current_process()
-        if current_process.name != 'MainProcess':
-            # This is a worker process, don't create GUI
-            return
-    except Exception:
-        pass
-    
-    # Check 2: Environment variable check (more reliable on Windows)
-    if os.environ.get('MP_MAIN_PROCESS') != '1':
-        # This is likely a worker process, don't create GUI
-        return
+    """Create and initialize the GUI."""
     
     global root, COLOR_BACKGROUND, COLOR_SHELF, COLOR_BOOK, COLOR_TEXT, COLOR_ACCENT
     global main_canvas, main_scrollbar, scrollable_main_frame
@@ -3272,26 +3147,7 @@ def create_gui():
     match_checkboxes = []  # List of (match, checkbox_var) tuples for export
 
 if __name__ == "__main__":
-    # Windows-specific: call freeze_support for multiprocessing
-    if platform.system() == "Windows":
-        multiprocessing.freeze_support()
-    
-    # Double-check we're in the main process before creating GUI
-    # On Windows with spawn, worker processes will have __name__ == "__main__"
-    # but they won't be the MainProcess
-    import os
-    try:
-        # Check 1: Process name
-        process_name = multiprocessing.current_process().name
-        # Check 2: Environment variable
-        is_main = os.environ.get('MP_MAIN_PROCESS', '1') == '1'
-        
-        if process_name == 'MainProcess' and is_main:
-            create_gui()
-            if root is not None:
-                root.mainloop()
-    except Exception:
-        # Don't create GUI on exception - this prevents worker processes
-        # from creating windows if the check fails
-        pass
+    create_gui()
+    if root is not None:
+        root.mainloop()
 
