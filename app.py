@@ -520,53 +520,33 @@ def find_title_for_page(volume_path: Path, page_num: int, page_text: str = None,
     
     # If there's a title that starts at this page, check OCR text to determine which title to use
     if title_at_page and page_text and match_line_idx is not None and page_lines:
-        # Find the next title (if any)
-        next_title = ""
-        for start_page in sorted_pages:
-            if start_page > page_num_int:
-                next_title = toc[start_page]
-                break
+        norm_page_text = normalize_text(page_text)
+        norm_match_text = normalize_text(" ".join(page_lines[:match_line_idx + 1]))
+        match_position = len(norm_match_text)
         
-        # If there's a next title, check if it appears in the OCR text
-        if next_title:
-            norm_next_title = normalize_text(next_title)
-            norm_page_text = normalize_text(page_text)
-            
-            # Find where the next title appears in the page text
-            next_title_position = None
-            
-            # Try to find the next title in the page text (normalized)
-            if norm_next_title in norm_page_text:
-                next_title_position = norm_page_text.find(norm_next_title)
-            else:
-                # Try to find individual words from the next title
-                next_title_words = norm_next_title.split()
-                if next_title_words:
-                    # Check if first word of next title appears in text
-                    first_word = next_title_words[0]
-                    if first_word in norm_page_text:
-                        next_title_position = norm_page_text.find(first_word)
-            
-            if next_title_position is not None:
-                # Find where the match occurs in the text
-                # Get text up to the match line (including the match line itself)
-                match_text = " ".join(page_lines[:match_line_idx + 1])
-                norm_match_text = normalize_text(match_text)
-                match_position = len(norm_match_text)
-                
-                # If next title appears BEFORE the match, the match is still in the previous title
-                # If next title appears AFTER the match, the match is in the title at this page
-                if next_title_position < match_position:
-                    # Next title appears before match → match is in previous title
-                    if previous_title:
-                        return previous_title
-                    else:
-                        return title_at_page  # Fallback to title at page if no previous title
-                else:
-                    # Next title appears after match → match is in title at this page
-                    return title_at_page
+        # Check for current title in the page text
+        norm_current_title = normalize_text(title_at_page)
+        current_title_position = None
+        if norm_current_title in norm_page_text:
+            current_title_position = norm_page_text.find(norm_current_title)
+        else:
+            current_title_words = norm_current_title.split()
+            if current_title_words:
+                first_word = current_title_words[0]
+                if first_word in norm_page_text:
+                    current_title_position = norm_page_text.find(first_word)
         
-        # If next title not found in text, default to the title that starts at this page
+        # Decide based only on current vs previous title
+        if current_title_position is not None:
+            # Current title before or at match => keep current title
+            if current_title_position <= match_position:
+                return title_at_page
+            # Current title appears after match => use previous title if available
+            if previous_title:
+                return previous_title
+            return title_at_page
+        
+        # If current title not found in OCR text, default to current title
         return title_at_page
     
     # If no title starts at this page, use the previous title
