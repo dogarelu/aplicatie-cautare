@@ -19,6 +19,19 @@ from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import threading
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    Image = None
+    ImageTk = None
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
 
 
 # Global variable to store selected root folder and selected paths
@@ -1733,6 +1746,332 @@ def open_image(image_path: Path):
         messagebox.showerror("Error", f"Failed to open image: {str(e)}")
 
 
+def _sort_images_by_page(images: list) -> list:
+    """Sort images by page number extracted from filename; fallback to name."""
+    def sort_key(p: Path):
+        num = extract_page_number_from_image(p.name)
+        try:
+            num_int = int(num) if num else None
+        except ValueError:
+            num_int = None
+        if num_int is not None:
+            return (0, num_int, p.name.lower())
+        return (1, p.name.lower())
+    return sorted(images, key=sort_key)
+
+
+def _list_neighbor_images(image_path: Path) -> list:
+    """List images in the same folder, sorted by page number if present."""
+    folder = image_path.parent
+    patterns = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.tif", "*.tiff", "*.bmp"]
+    imgs = []
+    for pattern in patterns:
+        imgs.extend(folder.glob(pattern))
+    # Deduplicate while preserving order before sort
+    imgs = list(dict.fromkeys(imgs))
+    return _sort_images_by_page(imgs)
+
+
+def _list_neighbor_pdfs(pdf_path: Path) -> list:
+    """List PDFs in the same folder, sorted by page number if present."""
+    folder = pdf_path.parent
+    pdfs = list(folder.glob("*.pdf"))
+    pdfs = list(dict.fromkeys(pdfs))
+    return _sort_images_by_page(pdfs)
+
+
+def _show_image_in_viewer(index: int):
+    """Render the image at the given index inside the viewer window."""
+    state = image_viewer_state
+    if not state["images"]:
+        return
+    index = max(0, min(index, len(state["images"]) - 1))
+    state["index"] = index
+    state["file_index"] = index
+    path = state["images"][index]
+
+    # Fallback if Pillow not available: open with OS viewer
+    if Image is None or ImageTk is None:
+        open_image(path)
+        return
+
+    try:
+        img = Image.open(path)
+        img.thumbnail((1400, 1000))
+        photo = ImageTk.PhotoImage(img)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to load image: {e}")
+        return
+
+    state["photo"] = photo  # keep reference
+    state["label"].config(image=photo)
+    state["title"].config(text=f"{path.name}  ({index + 1}/{len(state['images'])})")
+
+
+def _show_pdf_page(index: int):
+    """Render the PDF page at the current file/page indices inside the viewer."""
+    state = image_viewer_state
+    if not state.get("is_pdf") or state.get("pdf_doc") is None:
+        return
+    total = state.get("pdf_total", 0)
+    if total <= 0:
+        return
+    page_idx = max(0, min(state["page_index"], total - 1))
+    state["page_index"] = page_idx
+
+    if fitz is None:
+        messagebox.showerror("Error", "PyMuPDF (fitz) not installed; cannot preview PDF.")
+        return
+    if Image is None or ImageTk is None:
+        messagebox.showerror("Error", "Pillow not installed; cannot render PDF.")
+        return
+
+    try:
+        page = state["pdf_doc"].load_page(page_idx)
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # modest zoom
+        mode = "RGBA" if pix.alpha else "RGB"
+        img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
+        img.thumbnail((1400, 1000))
+        photo = ImageTk.PhotoImage(img)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to render PDF page: {e}")
+        return
+
+    state["photo"] = photo
+    state["label"].config(image=photo)
+    file_total = len(state.get("file_paths", [])) or 1
+    fname = Path(state["file_paths"][state["file_index"]]).name if state.get("file_paths") else "PDF"
+    state["title"].config(
+        text=f"{fname}  (file {state['file_index'] + 1}/{file_total}, p. {page_idx + 1}/{total})"
+    )
+
+
+def _load_and_show_pdf(file_idx: int, page_idx: int = 0):
+    """Load the PDF at file_idx and render the requested page."""
+    state = image_viewer_state
+    file_paths = state.get("file_paths", [])
+    if not file_paths:
+        return
+    file_idx = max(0, min(file_idx, len(file_paths) - 1))
+    pdf_path = file_paths[file_idx]
+
+    # Close previous doc
+    try:
+        if state.get("pdf_doc"):
+            state["pdf_doc"].close()
+    except Exception:
+        pass
+
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open PDF: {e}")
+        return
+
+    # Determine total pages
+    try:
+        page_total = getattr(doc, "page_count", None)
+        if page_total is None:
+            page_total = len(doc)
+    except Exception:
+        page_total = len(doc)
+
+    if page_total <= 1 and PyPDF2 is not None:
+        try:
+            reader = PyPDF2.PdfReader(str(pdf_path))
+            page_total = len(reader.pages)
+        except Exception:
+            pass
+
+    state["file_index"] = file_idx
+    state["page_index"] = max(0, min(page_idx, page_total - 1))
+    state["pdf_doc"] = doc
+    state["pdf_total"] = page_total
+
+    _show_pdf_page(state["page_index"])
+
+
+def _navigate_pdf(delta_pages: int):
+    """Navigate pages/files: left/right arrows jump across files when needed."""
+    state = image_viewer_state
+    if not state.get("is_pdf"):
+        return
+    file_paths = state.get("file_paths", [])
+    if not file_paths:
+        return
+
+    new_page = state.get("page_index", 0) + delta_pages
+    file_idx = state.get("file_index", 0)
+
+    if state.get("pdf_total", 0) <= 0:
+        return
+
+    # Move across files when page goes out of bounds
+    while True:
+        if new_page < 0:
+            file_idx -= 1
+            if file_idx < 0:
+                file_idx = 0
+                new_page = 0
+                break
+            # load previous file and jump to its last page
+            _load_and_show_pdf(file_idx, 0)
+            new_page = state["pdf_total"] - 1
+        elif new_page >= state.get("pdf_total", 1):
+            file_idx += 1
+            if file_idx >= len(file_paths):
+                file_idx = len(file_paths) - 1
+                new_page = state["pdf_total"] - 1
+                break
+            # load next file and start at first page
+            _load_and_show_pdf(file_idx, 0)
+            new_page = 0
+        else:
+            break
+
+    # Finally render the computed position
+    if state.get("file_index") != file_idx or state.get("pdf_doc") is None:
+        _load_and_show_pdf(file_idx, new_page)
+    else:
+        state["page_index"] = new_page
+        _show_pdf_page(new_page)
+
+
+def open_pdf_with_navigation(pdf_path: Path):
+    """Open a PDF with page-by-page navigation using PyMuPDF + Pillow."""
+    # Fallback if dependencies missing
+    if fitz is None or Image is None or ImageTk is None:
+        open_document(pdf_path)
+        return
+
+    # Collect neighbor PDFs
+    pdfs = _list_neighbor_pdfs(pdf_path)
+    if pdf_path not in pdfs and pdf_path.exists():
+        pdfs.append(pdf_path)
+        pdfs = _sort_images_by_page(pdfs)
+
+    state = image_viewer_state
+
+    # Close existing viewer window if open
+    if state["window"] and state["window"].winfo_exists():
+        try:
+            state["window"].destroy()
+        except Exception:
+            pass
+
+    # Initialize viewer state for PDFs
+    state.update({
+        "window": None,
+        "images": [],
+        "file_paths": pdfs,
+        "file_index": 0,
+        "index": 0,
+        "page_index": 0,
+        "photo": None,
+        "label": None,
+        "title": None,
+        "pdf_doc": None,
+        "pdf_total": 0,
+        "is_pdf": True,
+    })
+
+    win = tk.Toplevel(root)
+    win.title("Preview PDF")
+    state["window"] = win
+
+    def _on_close():
+        try:
+            if state["pdf_doc"]:
+                state["pdf_doc"].close()
+        except Exception:
+            pass
+        win.destroy()
+
+    win.protocol("WM_DELETE_WINDOW", _on_close)
+
+    state["title"] = tk.Label(win, font=("Arial", 16))
+    state["title"].pack(pady=4)
+
+    state["label"] = tk.Label(win, bg="black")
+    state["label"].pack(padx=10, pady=10)
+
+    btn_frame = tk.Frame(win)
+    btn_frame.pack(pady=6)
+
+    prev_btn = tk.Button(btn_frame, text="⬅️", font=("Arial", 20),
+                         command=lambda: _navigate_pdf(-1))
+    next_btn = tk.Button(btn_frame, text="➡️", font=("Arial", 20),
+                         command=lambda: _navigate_pdf(1))
+    prev_btn.grid(row=0, column=0, padx=8)
+    next_btn.grid(row=0, column=1, padx=8)
+
+    win.bind("<Left>", lambda _: _navigate_pdf(-1))
+    win.bind("<Right>", lambda _: _navigate_pdf(1))
+    win.focus_set()
+
+    # Jump to the requested pdf in the list
+    start_idx = pdfs.index(pdf_path) if pdf_path in pdfs else 0
+    state["file_index"] = start_idx
+    state["page_index"] = 0
+    _load_and_show_pdf(state["file_index"], state["page_index"])
+
+
+def open_image_with_navigation(image_path: Path):
+    """
+    Open an image with left/right navigation between neighboring pages.
+    Supports common raster formats; PDFs handled separately.
+    """
+    imgs = _list_neighbor_images(image_path)
+    if image_path not in imgs and image_path.exists():
+        imgs.append(image_path)
+        imgs = _sort_images_by_page(imgs)
+
+    state = image_viewer_state
+    if state["window"] and state["window"].winfo_exists():
+        state["window"].destroy()
+
+    # Reset viewer state for images
+    state.update({
+        "images": imgs,
+        "file_paths": imgs,
+        "index": 0,
+        "file_index": 0,
+        "page_index": 0,
+        "photo": None,
+        "label": None,
+        "title": None,
+        "pdf_doc": None,
+        "pdf_total": 0,
+        "is_pdf": False,
+    })
+    win = tk.Toplevel(root)
+    win.title("Preview pagină")
+    state["window"] = win
+
+    state["title"] = tk.Label(win, font=("Arial", 16))
+    state["title"].pack(pady=4)
+
+    state["label"] = tk.Label(win, bg="black")
+    state["label"].pack(padx=10, pady=10)
+
+    btn_frame = tk.Frame(win)
+    btn_frame.pack(pady=6)
+
+    prev_btn = tk.Button(btn_frame, text="⬅️", font=("Arial", 20),
+                         command=lambda: _show_image_in_viewer(state["index"] - 1))
+    next_btn = tk.Button(btn_frame, text="➡️", font=("Arial", 20),
+                         command=lambda: _show_image_in_viewer(state["index"] + 1))
+    prev_btn.grid(row=0, column=0, padx=8)
+    next_btn.grid(row=0, column=1, padx=8)
+
+    win.bind("<Left>", lambda _: _show_image_in_viewer(state["index"] - 1))
+    win.bind("<Right>", lambda _: _show_image_in_viewer(state["index"] + 1))
+    win.focus_set()
+
+    start_idx = imgs.index(image_path) if image_path in imgs else 0
+    _show_image_in_viewer(start_idx)
+
+
 def open_document(doc_path: Path):
     """Open a document file using the system's default application."""
     if not doc_path.exists():
@@ -2255,7 +2594,12 @@ def open_match_image(match: dict):
     
     volume_path = Path(volume_path_str)
     image_path = find_image_path(volume_path, image_filename)
-    open_image(image_path)
+    
+    # PDFs: open with PDF navigation (fallback to system viewer if deps missing)
+    if image_path.suffix.lower() == ".pdf":
+        open_pdf_with_navigation(image_path)
+    else:
+        open_image_with_navigation(image_path)
 
 
 def export_selected_to_docx(search_term: str):
@@ -2874,6 +3218,20 @@ word_order_var = None
 folder_label = None
 select_folder_button = None
 button = None
+image_viewer_state = {
+    "window": None,
+    "images": [],           # for raster images
+    "file_paths": [],       # generic list for pdfs/images
+    "file_index": 0,        # current file position in file_paths
+    "index": 0,             # image index (same as file_index for images)
+    "page_index": 0,        # page inside current pdf
+    "photo": None,
+    "label": None,
+    "title": None,
+    "pdf_doc": None,
+    "pdf_total": 0,
+    "is_pdf": False,
+}
 
 def create_gui():
     """Create and initialize the GUI."""
