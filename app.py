@@ -7,6 +7,7 @@ import subprocess
 import platform
 import requests
 import time
+import os
 import json
 from typing import List, Set, Dict
 from pathlib import Path
@@ -15,7 +16,7 @@ from rapidfuzz.distance import Levenshtein
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import threading
 
 
@@ -1168,7 +1169,12 @@ def find_match_context(query_text: str, page_lines: list, before: int = 2, after
     return page_lines[start_idx:end_idx]
 
 
-def check_words_in_word_span(query_words: list, page_lines: list, word_span: int, exact_order: bool = True) -> tuple:
+def _search_single_page_wrapper(args):
+    """Unpack arguments for process pool worker."""
+    return _search_single_page(*args)
+
+
+def check_words_in_word_span(query_words: list, page_lines: list, word_span: int, exact_order: bool = True, threshold: int = DEFAULT_THRESHOLD) -> tuple:
     """
     Verifică dacă toate cuvintele din query apar într-un span de cuvinte.
     exact_order: True = cuvintele trebuie să apară în ordinea exactă, False = orice ordine
@@ -1291,7 +1297,7 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
         
         word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
         query_text = " ".join(query_words)
-        fuzz_score = fuzz.partial_ratio(query_text, span_text)
+        fuzz_score = fuzz.partial_ratio(query_text, span_text, score_cutoff=threshold)
         
         if words_found == len(query_words):
             score = max(fuzz_score, word_coverage * 0.9)
@@ -1329,7 +1335,7 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
     
     if word_span is not None and word_span > 0 and page_lines:
         found, score, start_line_idx, end_line_idx, matched_words = check_words_in_word_span(
-            query_words, page_lines, word_span, exact_order
+            query_words, page_lines, word_span, exact_order, threshold
         )
         
         if found and score >= threshold:
@@ -1369,7 +1375,7 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
     if not norm_page:
         return page_matches
     
-    score = fuzz.partial_ratio(norm_query, norm_page)
+    score = fuzz.partial_ratio(norm_query, norm_page, score_cutoff=threshold)
     norm_page_words = norm_page.split()
     # Ensure each query word matches a different text word
     matched_word_indices = set()
@@ -1427,7 +1433,7 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
                         words_found += 1
                         break
             if words_found > 0:
-                score = fuzz.partial_ratio(norm_query, norm_line)
+                score = fuzz.partial_ratio(norm_query, norm_line, score_cutoff=threshold)
                 if score > best_match_score:
                     best_match_score = score
                     best_line_idx = i
@@ -1517,17 +1523,28 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     matches = []
     
     search_exec_start = time.perf_counter()
-    print(f"[{time.strftime('%H:%M:%S')}] Using sequential search")
-    # Sequential search - process all pages one by one
-    for idx, page in enumerate(pages):
-        try:
-            page_matches = _search_single_page(page, norm_query, query_words, query_text, threshold, word_span, exact_order)
-            matches.extend(page_matches)
-            if (idx + 1) % 100 == 0:
-                print(f"[{time.strftime('%H:%M:%S')}]   Searched {idx + 1}/{len(pages)} pages...")
-        except Exception as e:
-            # Log error but continue with other pages
-            print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
+    max_workers = min(os.cpu_count() or 4, 8)
+    print(f"[{time.strftime('%H:%M:%S')}] Using process pool search with {max_workers} workers")
+    
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        future_to_idx = {
+            executor.submit(
+                _search_single_page_wrapper,
+                (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+            ): idx
+            for idx, page in enumerate(pages)
+        }
+        
+        for completed_idx, future in enumerate(as_completed(future_to_idx), 1):
+            try:
+                page_matches = future.result()
+                if page_matches:
+                    matches.extend(page_matches)
+            except Exception as e:
+                print(f"[{time.strftime('%H:%M:%S')}] Error searching page: {e}")
+            
+            if completed_idx % 100 == 0:
+                print(f"[{time.strftime('%H:%M:%S')}]   Searched {completed_idx}/{len(pages)} pages...")
     
     search_exec_end = time.perf_counter()
     search_exec_time = search_exec_end - search_exec_start
