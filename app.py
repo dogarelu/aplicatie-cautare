@@ -1803,6 +1803,54 @@ def _list_neighbor_pdfs(pdf_path: Path) -> list:
     return _sort_images_by_page(pdfs)
 
 
+def _get_viewer_image_max_size() -> tuple[int, int]:
+    """
+    Compute the max width/height available for rendering inside the viewer window.
+    Falls back to screen size when the window is not yet sized.
+    """
+    state = image_viewer_state
+    win = state.get("window")
+    if win and win.winfo_exists():
+        win.update_idletasks()
+        # Leave room for paddings/buttons/title
+        max_w = max(400, win.winfo_width() - 40)
+        max_h = max(400, win.winfo_height() - 160)
+    else:
+        if root:
+            screen_w = root.winfo_screenwidth()
+            screen_h = root.winfo_screenheight()
+        else:
+            screen_w, screen_h = 1600, 900
+        max_w = int(screen_w * 0.9)
+        max_h = int(screen_h * 0.9)
+    return max_w, max_h
+
+
+def _refresh_current_view():
+    """Re-render current image/PDF page to fit the latest window size."""
+    state = image_viewer_state
+    if state.get("is_pdf"):
+        if state.get("pdf_doc"):
+            _show_pdf_page(state.get("page_index", 0))
+    else:
+        if state.get("images"):
+            _show_image_in_viewer(state.get("index", 0))
+
+
+def _on_viewer_resize(event=None):
+    """Debounced resize handler to avoid cutting off top/bottom content."""
+    state = image_viewer_state
+    win = state.get("window")
+    if not win or not win.winfo_exists():
+        return
+    if state.get("resize_job"):
+        try:
+            win.after_cancel(state["resize_job"])
+        except Exception:
+            pass
+    state["resize_job"] = win.after(120, _refresh_current_view)
+
+
 def _show_image_in_viewer(index: int):
     """Render the image at the given index inside the viewer window."""
     state = image_viewer_state
@@ -1820,7 +1868,11 @@ def _show_image_in_viewer(index: int):
 
     try:
         img = Image.open(path)
-        img.thumbnail((1400, 1000))
+        max_w, max_h = _get_viewer_image_max_size()
+        try:
+            img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)  # Pillow >=9.1
+        except Exception:
+            img.thumbnail((max_w, max_h))
         photo = ImageTk.PhotoImage(img)
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load image: {e}")
@@ -1854,7 +1906,11 @@ def _show_pdf_page(index: int):
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # modest zoom
         mode = "RGBA" if pix.alpha else "RGB"
         img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
-        img.thumbnail((1400, 1000))
+        max_w, max_h = _get_viewer_image_max_size()
+        try:
+            img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        except Exception:
+            img.thumbnail((max_w, max_h))
         photo = ImageTk.PhotoImage(img)
     except Exception as e:
         messagebox.showerror("Error", f"Failed to render PDF page: {e}")
@@ -1996,10 +2052,12 @@ def open_pdf_with_navigation(pdf_path: Path):
         "pdf_doc": None,
         "pdf_total": 0,
         "is_pdf": True,
+        "resize_job": None,
     })
 
     win = tk.Toplevel(root)
     win.title("Preview PDF")
+    win.minsize(500, 500)
     state["window"] = win
 
     def _on_close():
@@ -2016,7 +2074,7 @@ def open_pdf_with_navigation(pdf_path: Path):
     state["title"].pack(pady=4)
 
     state["label"] = tk.Label(win, bg="black")
-    state["label"].pack(padx=10, pady=10)
+    state["label"].pack(padx=10, pady=10, expand=True)
 
     btn_frame = tk.Frame(win)
     btn_frame.pack(pady=6)
@@ -2030,6 +2088,7 @@ def open_pdf_with_navigation(pdf_path: Path):
 
     win.bind("<Left>", lambda _: _navigate_pdf(-1))
     win.bind("<Right>", lambda _: _navigate_pdf(1))
+    win.bind("<Configure>", _on_viewer_resize)
     win.focus_set()
 
     # Jump to the requested pdf in the list
@@ -2066,16 +2125,18 @@ def open_image_with_navigation(image_path: Path):
         "pdf_doc": None,
         "pdf_total": 0,
         "is_pdf": False,
+        "resize_job": None,
     })
     win = tk.Toplevel(root)
     win.title("Preview pagină")
+    win.minsize(500, 500)
     state["window"] = win
 
     state["title"] = tk.Label(win, font=("Arial", 16))
     state["title"].pack(pady=4)
 
     state["label"] = tk.Label(win, bg="black")
-    state["label"].pack(padx=10, pady=10)
+    state["label"].pack(padx=10, pady=10, expand=True)
 
     btn_frame = tk.Frame(win)
     btn_frame.pack(pady=6)
@@ -2089,6 +2150,7 @@ def open_image_with_navigation(image_path: Path):
 
     win.bind("<Left>", lambda _: _show_image_in_viewer(state["index"] - 1))
     win.bind("<Right>", lambda _: _show_image_in_viewer(state["index"] + 1))
+    win.bind("<Configure>", _on_viewer_resize)
     win.focus_set()
 
     start_idx = imgs.index(image_path) if image_path in imgs else 0
@@ -3254,6 +3316,7 @@ image_viewer_state = {
     "pdf_doc": None,
     "pdf_total": 0,
     "is_pdf": False,
+    "resize_job": None,
 }
 
 def create_gui():
