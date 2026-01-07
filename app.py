@@ -25,6 +25,7 @@ import threading
 selected_root_folder = None
 selected_paths = []  # List of selected paths (Biblioteca, Rafturi, or Volume paths)
 selected_volumes = []  # List of selected "volumes" (final folders with ocr.txt)
+status_var = None
 
 # ---------- OCR Constants ----------
 # Header de pagină în fișierele OCR (*.txt)
@@ -399,6 +400,23 @@ def extract_page_number_from_image(img_name: str) -> str:
 
 # ---------- Table of Contents Functions ----------
 
+
+def _sanitize_title(raw_title: str) -> str:
+    """Normalize titles from cuprins: drop numbering, parenthetical notes, and keep only letters/digits/spaces/-/'."""
+    if not raw_title:
+        return ""
+    title = raw_title.strip()
+    # Remove leading numbering like "12." or "12)" or "12 -"
+    title = re.sub(r'^\s*\d+[.)]?\s*', '', title)
+    # Remove any parenthetical content e.g., "(cdnsjad)"
+    title = re.sub(r'\([^)]*\)', '', title)
+    # Keep only unicode letters/digits, spaces, hyphen, apostrophe (preserve diacritics)
+    title = re.sub(r"[^\w\s\-']", " ", title, flags=re.UNICODE)
+    title = title.replace("_", " ")
+    # Collapse whitespace
+    title = " ".join(title.split())
+    return title.strip()
+
 def load_cuprins(volume_path: Path) -> Dict[int, str]:
     """
     Load and parse cuprins.txt file from a volume folder.
@@ -427,20 +445,22 @@ def load_cuprins(volume_path: Path) -> Dict[int, str]:
                     match = re.search(r'(\d+)\s*$', line)
                     if match:
                         page_num_str = match.group(1)
-                        title = line[:match.start()].strip()
+                        title = _sanitize_title(line[:match.start()])
                         try:
                             page_num = int(page_num_str)
-                            toc[page_num] = title
+                            if title:
+                                toc[page_num] = title
                         except ValueError:
                             pass
                     continue
                 
                 if len(parts) == 2:
-                    title = parts[0].strip()
+                    title = _sanitize_title(parts[0])
                     page_num_str = parts[1].strip()
                     try:
                         page_num = int(page_num_str)
-                        toc[page_num] = title
+                        if title:
+                            toc[page_num] = title
                     except ValueError:
                         pass
     except Exception as e:
@@ -2490,7 +2510,7 @@ def export_selected_to_docx(search_term: str):
 
 def on_generate():
     """Handle the Search button click."""
-    global entry, word_span_var, word_order_var, button
+    global entry, word_span_var, word_order_var, button, status_var
     search_term = entry.get().strip()
     words = search_term.split()
 
@@ -2521,6 +2541,10 @@ def on_generate():
     # Disable button during processing
     button.config(state="disabled")
     root.update()  # Update UI to show disabled state
+
+    volume_count = len(selected_volumes)
+    status_var.set(f"Volume selectate: {volume_count}. Pornesc căutarea...")
+    search_start_ts = time.perf_counter()
     
     # Get word span value
     word_span_value = word_span_var.get()
@@ -2548,6 +2572,8 @@ def on_generate():
             
             # Update GUI in main thread
             root.after(0, lambda: display_results_in_table(matches, search_term, word_span=word_span))
+            elapsed = time.perf_counter() - search_start_ts
+            root.after(0, lambda: status_var.set(f"Căutare finalizată: {volume_count} volume în {elapsed:.1f}s, {len(matches)} rezultate."))
             root.after(0, lambda: button.config(state="normal"))
             
         except Exception as e:
@@ -2556,6 +2582,7 @@ def on_generate():
                 "Error",
                 f"Failed to search:\n{str(e)}"
             ))
+            root.after(0, lambda: status_var.set(f"Eșec căutare: {str(e)}"))
             root.after(0, lambda: button.config(state="normal"))
     
     # Start search in background thread
@@ -3155,6 +3182,19 @@ def create_gui():
         cursor="hand2"
     )
     button.pack(pady=15)
+
+    # Status label under the search button (shows volumes and duration)
+    global status_var
+    status_var = tk.StringVar(value="")
+    status_label = tk.Label(
+        scrollable_main_frame,
+        textvariable=status_var,
+        font=("Arial", 18, "italic"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_ACCENT,
+        justify=tk.LEFT
+    )
+    status_label.pack(pady=(0, 10), anchor="w", padx=20)
 
     # Global variable to store results window
     results_window = None
