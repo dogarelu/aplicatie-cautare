@@ -972,22 +972,45 @@ def find_code_for_title(volume_path: Path, title: str) -> str:
     
     codes = list(unique_matches.keys())
     
-    # If multiple matches, return all codes separated by commas with " - qqq" suffix
-    if len(codes) > 1:
-        codes_str = ", ".join(codes)
-        return f"{codes_str} - qqq"
-    
-    # If single match, look up the full line from Coduri-BF-CEE.txt
-    single_code = codes[0]  # This is now "BF 5.I" or "CEE 5.I" format
+    # Load code-to-name mapping once (works for single and multiple matches)
     coduri_dict = get_coduri_cached()
     
-    # Search for exactly the code as-is (e.g., "BF 5.I")
-    if single_code in coduri_dict:
-        full_line = coduri_dict[single_code]
-        return full_line
-    else:
-        # If not found, return the code with "- qqq" suffix
-        return f"{single_code} - qqq"
+    def format_code_with_name(code: str) -> str:
+        """
+        Return the full line from Coduri-BF-CEE if available.
+        Falls back to progressively simpler code forms before returning the raw code.
+        """
+        # Exact match first (e.g., "BF 5.I")
+        if code in coduri_dict:
+            return coduri_dict[code]
+        
+        # Remove trailing "subtip" notation, if present (e.g., "130.I subtip" -> "130.I")
+        code_no_subtip = re.sub(r'\s+subtip.*$', '', code, flags=re.IGNORECASE)
+        if code_no_subtip in coduri_dict:
+            return coduri_dict[code_no_subtip]
+        
+        # Remove the last dot segment (e.g., "131.II" -> "131")
+        base_code = re.sub(r'\.[A-Za-z0-9]+$', '', code_no_subtip)
+        if base_code in coduri_dict:
+            return coduri_dict[base_code]
+        
+        # Fallback: return the raw code if no mapping found
+        return code
+    
+    # If multiple matches, include names for each code and keep the " - qqq" suffix
+    if len(codes) > 1:
+        formatted_codes = [format_code_with_name(code) for code in codes]
+        codes_str = ", ".join(formatted_codes)
+        return f"{codes_str} - qqq"
+    
+    # If single match, use the formatted name if available; otherwise keep existing fallback
+    single_code = codes[0]  # This is now "BF 5.I" or "CEE 5.I" format
+    formatted_single = format_code_with_name(single_code)
+    if formatted_single != single_code:
+        return formatted_single
+    
+    # If not found, return the code with "- qqq" suffix
+    return f"{single_code} - qqq"
 
 
 # Cache for index RTF files

@@ -1,471 +1,471 @@
-﻿      Corectat mm - 7 mai 2013
+      Corectat mm - 7 mai 2013
 1. Amzulescu - Balada familială
      
 
-BF 1 - Soarele și Luna • Tip I - [Nunta Soarelui]1
-BF 1 - Soarele și Luna • Tip II - [Cununia fraților] 2
+BF 1 - Soarele și Luna • Tip I - [Nunta Soarelui]
+BF 1 - Soarele și Luna • Tip II - [Cununia fraților] 
 
-BF 2 - Cicoarea 3 
-BF 3 - Corbul și Vântul 4 
+BF 2 - Cicoarea 
+BF 3 - Corbul și Vântul 
 
-BF 4 - Trei fete surori • Tip I - [Trei surori la flori] 5
-BF 4 - Trei fete surori • Tip II - [Popa cel de piatră] 6
+BF 4 - Trei fete surori • Tip I - [Trei surori la flori] 
+BF 4 - Trei fete surori • Tip II - [Popa cel de piatră] 
 
-BF 5 - Voinicul rănit  • Tip I - [Maica bătrână] 7
-BF 5 - Voinicul rănit  • Tip II - [Moartea voinicului] 8
-BF 5 - Voinicul rănit  • Tip III - [Credința corbului] 9
+BF 5 - Voinicul rănit  • Tip I - [Maica bătrână] 
+BF 5 - Voinicul rănit  • Tip II - [Moartea voinicului] 
+BF 5 - Voinicul rănit  • Tip III - [Credința corbului] 
 
-BF 6 - Voica 10 
-BF 7 - Vâlcu și Ciuma 11 
-BF 8 - Dăscal-Păscal12
-BF 9 - Jăman-crai13
-BF 10 - Broasca-Roasca14
-BF 11 - Calul împărătesc15
-BF 12 - Fata furată de zmei în șezătoare16
-BF 13 - Petcana17
-BF 14 - Rădonia18
-BF 15 - Tătarii și robii19
+BF 6 - Voica 
+BF 7 - Vâlcu și Ciuma
+BF 8 - Dăscal-Păscal
+BF 9 - Jăman-crai
+BF 10 - Broasca-Roasca
+BF 11 - Calul împărătesc
+BF 12 - Fata furată de zmei în șezătoare
+BF 13 - Petcana
+BF 14 - Rădonia
+BF 15 - Tătarii și robii
 BF 16 - Agușiță al lui Topală20
-BF 17 - Agușiță, turc sărac21
-BF 18 - Ibraim22
-BF 19 - A lui Stănel23
-BF 20 - Rujălina24
-BF 21 - Strigă Iacob25
-BF 22 - Bujor26
-BF 23 - Ilie Haita27
-BF 24 - Costea haiducul28
-BF 25 - Cântec haiducesc29
+BF 17 - Agușiță, turc sărac
+BF 18 - Ibraim
+BF 19 - A lui Stănel
+BF 20 - Rujălina
+BF 21 - Strigă Iacob
+BF 22 - Bujor
+BF 23 - Ilie Haita
+BF 24 - Costea haiducul
+BF 25 - Cântec haiducesc
 BF 26 - Pocriș30
-BF 27 - Stan31
-BF 28 - A lui Rădișor32
-BF 29 - Buflia33
-BF 30 - A  lui Nistorel34
-BF 31 - A lui Ilie și Bargan35
-BF 32 - Frundzî verdi păltinel36
-BF 33 - A lui Naftal37
-BF 34 - Necșan38
+BF 27 - Stan
+BF 28 - A lui Rădișor
+BF 29 - Buflia
+BF 30 - A  lui Nistorel
+BF 31 - A lui Ilie și Bargan
+BF 32 - Frundzî verdi păltinel
+BF 33 - A lui Naftal
+BF 34 - Necșan
 BF 35 - A lui Hatmanŕ39
-BF 36 - A lui Băltișăl40
-BF 37 - Bustui41
-BF 38 - Petreanu42
-BF 39 - Voinicii codrului43
-BF 40 - Arâmbașa și ficiorii de țară44
-BF 41 - Harimbașa și potera45
-BF 42 - Jurgiu vălișoreanul și Ilie câlniceanul46
-BF 43 - Haiducul Niță47
-BF 44 - Luniță, luniță48
-BF 45 - Cântecul chirigiului49
-BF 46 - Petre50
-BF 47 - Cântecul lui Radu51
-BF 48 - A lu Ghiță Zaharia52
-BF 49 - Năchită53
-BF 50 - Manea54
-BF 51 - Terente55
-BF 52 - Crâșmărița56
-BF 53 - Hora lui Cercel57
-BF 54 - Căpitanul Trandafir58
-BF 55 - A lu Adam Niamțu59
-BF 56 - Miorița60
-BF 57 - Ciobanul care și-a pierdut oile61
-BF 58 - Ciobanul care și-a băut turma62
-BF 59 - Pe un munte nalt și verde63
-BF 60 - Dolina64
-BF 61 - Cânticul ciobanului cari s-o făcut haiduc65
-BF 62 - Cântic hoțăsc66
+BF 36 - A lui Băltișăl
+BF 37 - Bustui
+BF 38 - Petreanu
+BF 39 - Voinicii codrului
+BF 40 - Arâmbașa și ficiorii de țară
+BF 41 - Harimbașa și potera
+BF 42 - Jurgiu vălișoreanul și Ilie câlniceanul
+BF 43 - Haiducul Niță
+BF 44 - Luniță, luniță
+BF 45 - Cântecul chirigiului
+BF 46 - Petre
+BF 47 - Cântecul lui Radu
+BF 48 - A lu Ghiță Zaharia
+BF 49 - Năchită
+BF 50 - Manea
+BF 51 - Terente
+BF 52 - Crâșmărița
+BF 53 - Hora lui Cercel
+BF 54 - Căpitanul Trandafir
+BF 55 - A lu Adam Niamțu
+BF 56 - Miorița
+BF 57 - Ciobanul care și-a pierdut oile
+BF 58 - Ciobanul care și-a băut turma
+BF 59 - Pe un munte nalt și verde
+BF 60 - Dolina
+BF 61 - Cânticul ciobanului cari s-o făcut haiduc
+BF 62 - Cântic hoțăsc
 BF 63 - Stâna prădată67
-BF 64 - Păcurarul si Fata-pădurei68
-BF 65 - Horea lui Ion Berciu69
-BF 66 - Mircea și Codrea70
-BF 67 - Codreanu71
-BF 68 - Voina72
-BF 69 - Ciobanul fură fata crâșmarului73
-BF 70 - Meșterul Manole74
-BF 71 - Dobrișan75
-BF 72 - Mircea ciobănașul76
-BF 73 - Radu-vodă și Drăgan77
-BF 74 - Vartici78
-BF 75 - Nourel și Calapod paharnicul79
-BF 76 - Dediu (Gegiu) și Dragna (Drajna)80
-BF 77 - Iordăchiță al Lupului81
-BF 78 - Ștefan-vodă și vlădica Iuon82
-BF 79 - Ștefan-vodă și Gegiu83
-BF 80 - Vintilă-vodă84
-BF 81 - Ștefănuț-vodă85
-BF 82 - Iancu-vodă86
-BF 83 - Mogoș vornicul87
-BF 84 - Cântecul lui Prâscoveanu88
-BF 85 - Enea vameș-mare89
-BF 86 - Argialâul90
-BF 87 - Armaș Dragomir91
-BF 88 - Sâiu, pârcălabul de Bârlad92
-BF 89 - Inelul și corbul93
-BF 90 - Mateaș-crai94
-BF 91 - Brumărelul95
+BF 64 - Păcurarul si Fata-pădurei
+BF 65 - Horea lui Ion Berciu
+BF 66 - Mircea și Codrea
+BF 67 - Codreanu
+BF 68 - Voina
+BF 69 - Ciobanul fură fata crâșmarului
+BF 70 - Meșterul Manole
+BF 71 - Dobrișan
+BF 72 - Mircea ciobănașul
+BF 73 - Radu-vodă și Drăgan
+BF 74 - Vartici
+BF 75 - Nourel și Calapod paharnicul
+BF 76 - Dediu (Gegiu) și Dragna (Drajna)
+BF 77 - Iordăchiță al Lupului
+BF 78 - Ștefan-vodă și vlădica Iuon
+BF 79 - Ștefan-vodă și Gegiu
+BF 80 - Vintilă-vodă
+BF 81 - Ștefănuț-vodă
+BF 82 - Iancu-vodă
+BF 83 - Mogoș vornicul
+BF 84 - Cântecul lui Prâscoveanu
+BF 85 - Enea vameș-mare
+BF 86 - Argialâul
+BF 87 - Armaș Dragomir
+BF 88 - Sâiu, pârcălabul de Bârlad
+BF 89 - Inelul și corbul
+BF 90 - Mateaș-crai
+BF 91 - Brumărelul
 
-BF 92 - Metamorfoze • Tip I - Logodnicii nefericiți96
-BF 92 - Metamorfoze • Tip II - Cucul și Turturica97
-BF 92 - Metamorfoze • Tip III - Mierla și Sturzul98
-BF 92 - Metamorfoze • Tip IV - Iubitul (soțul) urât 99
-BF 92 - Metamorfoze • Tip V - Fata stejarului (cetinii) și feciorul bradului 100
-BF 92 - Metamorfoze • Tip VI - Voina și mândra lui 101
+BF 92 - Metamorfoze • Tip I - Logodnicii nefericiți
+BF 92 - Metamorfoze • Tip II - Cucul și Turturica
+BF 92 - Metamorfoze • Tip III - Mierla și Sturzul
+BF 92 - Metamorfoze • Tip IV - Iubitul (soțul) urât
+BF 92 - Metamorfoze • Tip V - Fata stejarului (cetinii) și feciorul bradului 
+BF 92 - Metamorfoze • Tip VI - Voina și mândra lui
 
 
-BF 93 - Mândra semeață - înșelată • Tip I - Iencea Sibiencea102
-BF 93 - Mândra semeață - înșelată • Tip II - Călina-Mălina103
+BF 93 - Mândra semeață - înșelată • Tip I - Iencea Sibiencea
+BF 93 - Mândra semeață - înșelată • Tip II - Călina-Mălina
 
-BF 94 - Vălean104
+BF 94 - Vălean
 
-BF 95 - Proba iubirii • Tip I - Milea105
-BF 95 - Proba iubirii • Tip II - Rada106
-BF 95 - Proba iubirii • Tip III - Iana Ghizuleana107
-BF 95 - Proba iubirii • Tip IV - Întemnițatul și iubita108
-BF 95 - Proba iubirii • Tip V - Întemnițatul părăsit de mândra109
+BF 95 - Proba iubirii • Tip I - Milea
+BF 95 - Proba iubirii • Tip II - Rada
+BF 95 - Proba iubirii • Tip III - Iana Ghizuleana
+BF 95 - Proba iubirii • Tip IV - Întemnițatul și iubita
+BF 95 - Proba iubirii • Tip V - Întemnițatul părăsit de mândra
 
-BF 96 - Voinicel străin110
+BF 96 - Voinicel străin
 
-BF 97 - Două surățele • Tip I - Conflict erotic (Cumnățelele)111
-BF 97 - Două surățele • Tip II - Contrast regional: moldoveanca (vlăsceanca, armanca) și mocanca)112
-BF 97 - Două surățele • Tip III - Contrast social: bogata și săraca113
+BF 97 - Două surățele • Tip I - Conflict erotic (Cumnățelele)
+BF 97 - Două surățele • Tip II - Contrast regional: moldoveanca (vlăsceanca, armanca) și mocanca)
+BF 97 - Două surățele • Tip III - Contrast social: bogata și săraca
 
-BF 98 - Mândra părăsită114
+BF 98 - Mândra părăsită
 
-BF 99 - Blestemul mândrei • Tip I - [Mândra părăsită] 115
-BF 99 - Blestemul mândrei • Tip II - [Mândra părăsită și înșelată] 116
+BF 99 - Blestemul mândrei • Tip I - [Mândra părăsită] 
+BF 99 - Blestemul mândrei • Tip II - [Mândra părăsită și înșelată]
 
-BF 100 - Mireasa moartă117
-BF 101 - Mirele mort118
+BF 100 - Mireasa moartă
+BF 101 - Mirele mort
 
-BF 102 - Leacul dragostei • Tip I - Leacul voinicului (sau drăguței) 119
-BF 102 - Leacul dragostei • Tip II - Boala fetei120
-BF 102 - Leacul dragostei • Tip III - Leacul adevărat121
+BF 102 - Leacul dragostei • Tip I - Leacul voinicului (sau drăguței)
+BF 102 - Leacul dragostei • Tip II - Boala fetei
+BF 102 - Leacul dragostei • Tip III - Leacul adevărat
 
-BF 103 - Rădița122
-BF 104 - Todiran123
-BF 105 - La biserica (fântâna cea) de piatră124
-BF 106 - Mândra din Muncel125
-BF 107 - Voinicul și mândra moartă126
-BF 108 - Cântecul Crișului127
+BF 103 - Rădița
+BF 104 - Todiran
+BF 105 - La biserica (fântâna cea) de piatră
+BF 106 - Mândra din Muncel
+BF 107 - Voinicul și mândra moartă
+BF 108 - Cântecul Crișului
 
-BF 109 - Fata adormită - furată • Tip I - D-aba gagă128
-BF 109 - Fata adormită - furată • Tip II - Flăcăul răpește pe fata adormită și roagă Zorile, Soarele, Ceața să nu-l dea în vileag129
+BF 109 - Fata adormită - furată • Tip I - D-aba gagă
+BF 109 - Fata adormită - furată • Tip II - Flăcăul răpește pe fata adormită și roagă Zorile, Soarele, Ceața să nu-l dea în vileag
 
 BF 110 - Năiță130
-BF 111 - Di la Odobești la dial131
-BF 112 - Fata fetelor132
-BF 113 - Năzdravânul133
-BF 114 - Sfârșitul drăguței ș-a drăguțului înșelător134
-BF 115 - Lorinte135
-BF 116 - Mândrul lecuit136
-BF 117 - Petrea Bradului137
-BF 118 - Popa Ilie138
-BF 119 - Răzbunarea139
-BF 120 - Frunză verde de pe baltă140
-BF 121 - Dorul ostașului141
-BF 122 - Voinicul și vulturul142
-BF 123 - Osândiții143
-BF 124 - Pe-o vale, pe-o cărare144
-BF 125 - Cântătura Lenuțî145
-BF 126 - Mustrarea fetei146
-BF 127 - Fata Radului147
-BF 128 - Moartea drăguței148
-BF 129 - Fata răpită149
+BF 111 - Di la Odobești la dial
+BF 112 - Fata fetelor
+BF 113 - Năzdravânul
+BF 114 - Sfârșitul drăguței ș-a drăguțului înșelător
+BF 115 - Lorinte
+BF 116 - Mândrul lecuit
+BF 117 - Petrea Bradului
+BF 118 - Popa Ilie
+BF 119 - Răzbunarea
+BF 120 - Frunză verde de pe baltă
+BF 121 - Dorul ostașului
+BF 122 - Voinicul și vulturul
+BF 123 - Osândiții
+BF 124 - Pe-o vale, pe-o cărare
+BF 125 - Cântătura Lenuțî
+BF 126 - Mustrarea fetei
+BF 127 - Fata Radului
+BF 128 - Moartea drăguței
+BF 129 - Fata răpită
 
-BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia)150
-BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia). Subtip: Trecere către variantele din Transilvania - Moldova151
-BF 130 - Nevasta vândută • Tip II - De obicei, fata Banului, vândută din cauza soacrei rele (Transilvania)152
-BF 130 - Nevasta vândută • Tip III - Bărbatul rău, bețiv și cu datorii, sau fără motivare (Moldova)153
+BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia)
+BF 130 - Nevasta vândută • Tip I - Voinicel Oleac (Oltenia - Muntenia). Subtip: Trecere către variantele din Transilvania - Moldova
+BF 130 - Nevasta vândută • Tip II - De obicei, fata Banului, vândută din cauza soacrei rele (Transilvania)
+BF 130 - Nevasta vândută • Tip III - Bărbatul rău, bețiv și cu datorii, sau fără motivare (Moldova)
 
-BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 1: Hoții îi cer să lase pruncul154
-BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 2: Pruncul crescut de mama cucului își recunoaște mama, birtășița hoților 155
-BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 3: Trebuind să treacă o apă, podarii (luntrașii, popi-preoței) îi cer sărutări drept vamă. Nevasta îi refuză și trece prin vad, apoi își lasă pruncul (uneori e urmărită de soț) 156
-BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 1: Este iertată, iar amantul, ucis 157
-BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 2: Pedepsită de soț (arsă de vie sau vândută) 158
-BF 131 - Nevasta fugită • Tip III - Amestec de motive din tipurile I și II. (Fuge cu amantul, podarii îi cer vamă. Pruncul părăsit nu o recunoaște.) 159
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 1: Hoții îi cer să lase pruncul
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 2: Pruncul crescut de mama cucului își recunoaște mama, birtășița hoților 
+BF 131 - Nevasta fugită • Tip I - Fuge cu pruncul ("Pe sub poale de pădure") - Subtip 3: Trebuind să treacă o apă, podarii (luntrașii, popi-preoței) îi cer sărutări drept vamă. Nevasta îi refuză și trece prin vad, apoi își lasă pruncul (uneori e urmărită de soț)
+BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 1: Este iertată, iar amantul, ucis
+BF 131 - Nevasta fugită • Tip II - Fuge cu amantul, dar se întoarce de dorul pruncului - Subtip 2: Pedepsită de soț (arsă de vie sau vândută)
+BF 131 - Nevasta fugită • Tip III - Amestec de motive din tipurile I și II. (Fuge cu amantul, podarii îi cer vamă. Pruncul părăsit nu o recunoaște.) 
 
-BF 132 - Chira badii, Chiră160
-BF 133 - Moșneagul161
+BF 132 - Chira badii, Chiră
+BF 133 - Moșneagul
 
-BF 134 - Femeia necredincioasă • Tip I - [Soția adulterină ucisă, amantul iertat] 162
-BF 134 - Femeia necredincioasă • Tip II - [Soția adulterină și amantul, bătuți] 163
+BF 134 - Femeia necredincioasă • Tip I - [Soția adulterină ucisă, amantul iertat] 
+BF 134 - Femeia necredincioasă • Tip II - [Soția adulterină și amantul, bătuți] 
 
-BF 135 - Oancea chirigiul și Vlaicu pârcălabul (Neguța)164
-BF 136 - Fata amăgită de țigan165
-BF 137 - Fata măritată după hoț166
-BF 138 - Stanca cu Tudor167
-BF 139 - Despărțirea168
-BF 140 - Jicmond Craiul și Moțoi din Făgăraș169
-BF 141 - Frundzî verdi ș-on harbuz170
-BF 142 - Frundză verdi păr uscat171
-BF 143 - Trei tălhari de ghenerari172
-BF 144 - Nița și drăguții173
-BF 145 - Mama arsă de vie174
-BF 146 - Raita cătana175
-BF 147 - Dinu, om sărac176
-BF 148 - Tudor Dobrogean177
+BF 135 - Oancea chirigiul și Vlaicu pârcălabul (Neguța)
+BF 136 - Fata amăgită de țigan
+BF 137 - Fata măritată după hoț
+BF 138 - Stanca cu Tudor
+BF 139 - Despărțirea
+BF 140 - Jicmond Craiul și Moțoi din Făgăraș
+BF 141 - Frundzî verdi ș-on harbuz
+BF 142 - Frundză verdi păr uscat
+BF 143 - Trei tălhari de ghenerari
+BF 144 - Nița și drăguții
+BF 145 - Mama arsă de vie
+BF 146 - Raita cătana
+BF 147 - Dinu, om sărac
+BF 148 - Tudor Dobrogean
 
-BF 149 - Inelul și năframa • Tip I - Crăișorul; soția e persecutată de socru 178
+BF 149 - Inelul și năframa • Tip I - Crăișorul; soția e persecutată de socru 
 BF 149 - Inelul și năframa • Tip II - Fecior de gândac - fată de om sărac; mama feciorului o persecută 179
-BF 149 - Inelul și năframa • Tip III - Fata slujnică, doamna o persecută 180
+BF 149 - Inelul și năframa • Tip III - Fata slujnică, doamna o persecută
 
-BF 150 - Soacra rea181
-BF 151 - Fata blestemată - pasăre pribeagă182
-BF 152 - Tâlharul și mamă-sa183
-BF 153 - Stoican184
-BF 154 - Blestemul185
-BF 155 - Dănuță186
-BF 156 - Manole187
-BF 157 - Dedel188
-BF 158 - Iliana din Ardeal189
-BF 159 - Ianoș-crai și Anuța190
-BF 160 - La râul de roauă191
-BF 161 - Blestemul mamei192
-BF 162 - Calul aduce vestea morții stăpânului193
-BF 163 - Fata întemnițată194
-BF 164 - Soacra otrăvește nora adulteră195
-BF 165 - Pătru ăl cu peștele196
-BF 166 - Stoian voivoda197
-BF 167 - Ursitoarea198
-BF 168 - Fata fugită (urmărită de frați)199
-BF 169 - Sora otrăvind fratele200
-BF 170 - Frații întemnițați și sora201
-BF 171 - Gheorghe și Iosif202
-BF 172 - Sora se plânge fratelui de necazurile căsniciei203
-BF 173 - Ancuța204
+BF 150 - Soacra rea
+BF 151 - Fata blestemată - pasăre pribeagă
+BF 152 - Tâlharul și mamă-sa
+BF 153 - Stoican
+BF 154 - Blestemul
+BF 155 - Dănuță
+BF 156 - Manole
+BF 157 - Dedel
+BF 158 - Iliana din Ardeal
+BF 159 - Ianoș-crai și Anuța
+BF 160 - La râul de roauă
+BF 161 - Blestemul mamei
+BF 162 - Calul aduce vestea morții stăpânului
+BF 163 - Fata întemnițată
+BF 164 - Soacra otrăvește nora adulteră
+BF 165 - Pătru ăl cu peștele
+BF 166 - Stoian voivoda
+BF 167 - Ursitoarea
+BF 168 - Fata fugită (urmărită de frați)
+BF 169 - Sora otrăvind fratele
+BF 170 - Frații întemnițați și sora
+BF 171 - Gheorghe și Iosif
+BF 172 - Sora se plânge fratelui de necazurile căsniciei
+BF 173 - Ancuța
      
      
 2. Amzulescu - Cântecul Epic eroic
      
      
 
-CEE 1 - Gerul 205
-CEE 2 - Sîla-Samodiva si Dălea (Bogdan)-Dămian 206 
-CEE 3 - Scorpia 207 
-CEE 4 - Trei frați cu nouă zmei 208 
-CEE 5 - Iovan Iorgovan 209 
-CEE 6 - Șarpele 210 
-CEE 7 - Antofiță al lui Vioară 211 
+CEE 1 - Gerul 
+CEE 2 - Sîla-Samodiva si Dălea (Bogdan)-Dămian
+CEE 3 - Scorpia 
+CEE 4 - Trei frați cu nouă zmei  
+CEE 5 - Iovan Iorgovan 
+CEE 6 - Șarpele 
+CEE 7 - Antofiță al lui Vioară 
 
-CEE 8 - Novac și zâna • Tip I - [Zâna războinică]212
-CEE 8 - Novac și zâna • Tip II - [Zâna temătoare]213
+CEE 8 - Novac și zâna • Tip I - [Zâna războinică]
+CEE 8 - Novac și zâna • Tip II - [Zâna temătoare]
 
-CEE 9 - Novac. Însurătoarea lui Gruia cu fata sălbatică214
-CEE 10 - Novac. Gruia și șarpele215
-CEE 11 - Novac și Dîrvij216
-CEE 12 - Copilaș de turc217
-CEE 13 - Mizil-crai218
-CEE 14 - Fata de frânc219
-CEE 15 - Letinul bogat220
-CEE 16 - Voinicul adormit 221
-CEE 17 - Trei crai 222
-CEE 18 - Trei lebede223
-CEE 19 - Ion Botezătorul (Sfânta Vineri)224
-CEE 20 - Ardiu-crăișor225
-CEE 21 - Ciocârlanul226
-CEE 22 - Arian al mic227
-CEE 23 - Ghiol Dumitru228
-CEE 24 - Gruicea229
-CEE 25 - Deli-Marcu. Fratele lui Negru-vodă230
-CEE 26 - Andronim și Filana231
+CEE 9 - Novac. Însurătoarea lui Gruia cu fata sălbatică
+CEE 10 - Novac. Gruia și șarpele
+CEE 11 - Novac și Dîrvij
+CEE 12 - Copilaș de turc
+CEE 13 - Mizil-crai
+CEE 14 - Fata de frânc
+CEE 15 - Letinul bogat
+CEE 16 - Voinicul adormit
+CEE 17 - Trei crai
+CEE 18 - Trei lebede
+CEE 19 - Ion Botezătorul (Sfânta Vineri)
+CEE 20 - Ardiu-crăișor
+CEE 21 - Ciocârlanul
+CEE 22 - Arian al mic
+CEE 23 - Ghiol Dumitru
+CEE 24 - Gruicea
+CEE 25 - Deli-Marcu. Fratele lui Negru-vodă
+CEE 26 - Andronim și Filana
 
-CEE 27 - Novac. Gruia captiv în Țarigrad • Tip I - [Gruia în temniță]232
-CEE 27 - Novac. Gruia captiv în Țarigrad • Tip II - [Gruia la spânzurătoare]233
+CEE 27 - Novac. Gruia captiv în Țarigrad • Tip I - [Gruia în temniță]
+CEE 27 - Novac. Gruia captiv în Țarigrad • Tip II - [Gruia la spânzurătoare]
 
-CEE 28 - Novac. Anița (Lidva, Libra) crâșmărița234
+CEE 28 - Novac. Anița (Lidva, Libra) crâșmărița
 
-CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip I - Fata Cadiului235
-CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip II - Fata împăratului236
-CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip III - Fata din Dodrin237
-CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip IV - Fata de latin din Buda238
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip I - Fata Cadiului
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip II - Fata împăratului
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip III - Fata din Dodrin
+CEE 29 - Novac. Însurătoarea lui Ioviță (Gruiță) • Tip IV - Fata de latin din Buda
 
 
-CEE 30 - Novac. Gruia la arat239
-CEE 31 - Novac. Gruia... femeie și turcii240
-CEE 32 - Novac vinde pe Gruia241
-CEE 33 - Novac. Turcul și Novăceștii242
-CEE 34 - Novac și Balaban243
-CEE 35 - Novac. Gruia scapă pe Novac legat de turci244
-CEE 36 - Novac și negustorii245
-CEE 37 - Doicin bolnavul246
-CEE 38 - Marcu viteazul247
-CEE 39 - Iancul Mare248
-CEE 40 - Pătru haiducul249
-CEE 41 - Tănislav250
-CEE 42 - Badiu cârciumarul251
-CEE 43 - Banul252
-CEE 44 - Marcu253
-CEE 45 - Ioneasa cârciumăreasa254
-CEE 46 - Chira-Chiralina255
-CEE 47 - Ilincuța Șandrului256
-CEE 48 - Corbac257
-CEE 49 - Serb-sărac258
-CEE 50 - Fecioraș de sîrb259
-CEE 51 - Brăilenii260
-CEE 52 - Niculca261
-CEE 53 - Stan al lui Stăvrui262
-CEE 54 - Goia263
-CEE 55 - Dragu264
-CEE 56 - Gheorghiță Zătreanu265
-CEE 57 - A lui Șoimănel266
-CEE 58 - Ana Ardeleana267
-CEE 59 - Manuilă și Mustafa268
-CEE 60 - Marcu iagărul269
-CEE 61 - Iancu și turcul270
-CEE 62 - Sora și fratele271
-CEE 63 - Stoian bulibașa272
-CEE 64 - Vidu țăranul273
-CEE 65 - Rădoiță274
-CEE 66 - Goescu275
-CEE 67 - Aiduc Velcu276
-CEE 68 - Stângă277
-CEE 69 - Pătru di la Izvor278
-CEE 70 - Roman copilul279
-CEE 71 - Cerchez280
-CEE 72 - Șiret pârcălabul281
-CEE 73 - Vișina282
-CEE 74 - Moldovean Dobrogean283
-CEE 75 - Român Grue Grozovanul284
-CEE 76 - Buica Becheanu285
-CEE 77 - Cântecul lui Bibea Cucu286
-CEE 78 - Barbă haiducul287
-CEE 79 - Dumitru dobrogeanu288
-CEE 80 - Velea viteazul289
-CEE 81 - A Gruiului290
-CEE 82 - Vizercan și porumbul291
-CEE 83 - Cântecu lu Isirim bogatu292
-CEE 84 - Radu și tătarii293
-CEE 85 - Corbea294
-CEE 86 - Toma Alimoș295
-CEE 87 - Mihu Copilul296
-CEE 88 - Miu haiducul297
-CEE 89 - Golea298
-CEE 90 - Baba Sârba299
-CEE 91 - Stanciu al Bratului (Voica Bălaca)300
+CEE 30 - Novac. Gruia la arat
+CEE 31 - Novac. Gruia... femeie și turcii
+CEE 32 - Novac vinde pe Gruia
+CEE 33 - Novac. Turcul și Novăceștii
+CEE 34 - Novac și Balaban
+CEE 35 - Novac. Gruia scapă pe Novac legat de turci
+CEE 36 - Novac și negustorii
+CEE 37 - Doicin bolnavul
+CEE 38 - Marcu viteazul
+CEE 39 - Iancul Mare
+CEE 40 - Pătru haiducul
+CEE 41 - Tănislav
+CEE 42 - Badiu cârciumarul
+CEE 43 - Banul
+CEE 44 - Marcu
+CEE 45 - Ioneasa cârciumăreasa
+CEE 46 - Chira-Chiralina
+CEE 47 - Ilincuța Șandrului
+CEE 48 - Corbac
+CEE 49 - Serb-sărac
+CEE 50 - Fecioraș de sîrb
+CEE 51 - Brăilenii
+CEE 52 - Niculca
+CEE 53 - Stan al lui Stăvrui
+CEE 54 - Goia
+CEE 55 - Dragu
+CEE 56 - Gheorghiță Zătreanu
+CEE 57 - A lui Șoimănel
+CEE 58 - Ana Ardeleana
+CEE 59 - Manuilă și Mustafa
+CEE 60 - Marcu iagărul
+CEE 61 - Iancu și turcul
+CEE 62 - Sora și fratele
+CEE 63 - Stoian bulibașa
+CEE 64 - Vidu țăranul
+CEE 65 - Rădoiță
+CEE 66 - Goescu
+CEE 67 - Aiduc Velcu
+CEE 68 - Stângă
+CEE 69 - Pătru di la Izvor
+CEE 70 - Roman copilul
+CEE 71 - Cerchez
+CEE 72 - Șiret pârcălabul
+CEE 73 - Vișina
+CEE 74 - Moldovean Dobrogean
+CEE 75 - Român Grue Grozovanul
+CEE 76 - Buica Becheanu
+CEE 77 - Cântecul lui Bibea Cucu
+CEE 78 - Barbă haiducul
+CEE 79 - Dumitru dobrogeanu
+CEE 80 - Velea viteazul
+CEE 81 - A Gruiului
+CEE 82 - Vizercan și porumbul
+CEE 83 - Cântecu lu Isirim bogatu
+CEE 84 - Radu și tătarii
+CEE 85 - Corbea
+CEE 86 - Toma Alimoș
+CEE 87 - Mihu Copilul
+CEE 88 - Miu haiducul
+CEE 89 - Golea
+CEE 90 - Baba Sârba
+CEE 91 - Stanciu al Bratului (Voica Bălaca)
 
-CEE 92 - Petre Busuioc • Tip I - [yyy Fuga haiducului]301
-CEE 92 - Petre Busuioc • Tip II - [Potera înfrântă/păcălită]302
+CEE 92 - Petre Busuioc • Tip I - [yyy Fuga haiducului]
+CEE 92 - Petre Busuioc • Tip II - [Potera înfrântă/păcălită]
 
-CEE 93 - Pătru Frunte-lată303
-CEE 94 - Bogatul și săracul304
+CEE 93 - Pătru Frunte-lată
+CEE 94 - Bogatul și săracul
 
-CEE 95 - Țăranul și ciocoiul • Tip I - [Ciocoiul ciomăgit]305
-CEE 95 - Țăranul și ciocoiul • Tip II - [Audiență la palat yyy]306
+CEE 95 - Țăranul și ciocoiul • Tip I - [Ciocoiul ciomăgit]
+CEE 95 - Țăranul și ciocoiul • Tip II - [Audiență la palat yyy]
 
-CEE 96 - Iancu Jianu307
-CEE 97 - Tunsul308
-CEE 98 - Gheorghelaș309
-CEE 99 - Ion ăl Mare310
-CEE 100 - Radu Anghel311
-CEE 101 - Cântecul lui Radu312
-CEE 102 - Buruleanu313
-CEE 103 - Muscu314
-CEE 104 - Petrea Cârtoc315
-CEE 105 - Bolbocean316
-CEE 106 - Botea317
+CEE 96 - Iancu Jianu
+CEE 97 - Tunsul
+CEE 98 - Gheorghelaș
+CEE 99 - Ion ăl Mare
+CEE 100 - Radu Anghel
+CEE 101 - Cântecul lui Radu
+CEE 102 - Buruleanu
+CEE 103 - Muscu
+CEE 104 - Petrea Cârtoc
+CEE 105 - Bolbocean
+CEE 106 - Botea
 CEE 107 - Bahnă318
-CEE 108 - Ion Pietrariu319
-CEE 109 - Dragoș320
-CEE 110 - Codău321
-CEE 111 - Pantelimon322
-CEE 112 - Coroi323
-CEE 113 - Darie324
-CEE 114 - Vasile cel Mare325
-CEE 115 - Pintea viteazul326
-CEE 116 - Vili327
-CEE 117 - Dobre haiducu328
-CEE 118 - Stângu329
-CEE 119 - Onea și Coțofeanca330
-CEE 120 - Cântecul lui Petrescu331
-CEE 121 - Petre Vâlcean332
-CEE 122 - Dragu333
-CEE 123 - Burcea334
-CEE 124 - Radu Groșanu335
-CEE 125 - Codreanu336
-CEE 126 - Coman337
-CEE 127 - Cântecul lui Păun haiducul338
-CEE 128 - Cernea339
-CEE 129 - Manea haiducul340
-CEE 130 - Fulga și Budac341
-CEE 131 - Căpitanu342
-CEE 132 - Pătru logofătu343
-CEE 133 - Răducanu344
-CEE 134 - Comănac345
-CEE 135 - Petru haiducul346
-CEE 136 - La cârciuma din pădure347
-CEE 137 - Șogor348
-CEE 138 - Voicu haiducul349
-CEE 139 - Terente haiducul350
-CEE 140 - Gruian351
-CEE 141 - Stancu Lupu352
-CEE 142 - Nedea voinicul353
-CEE 143 - Coste354
-CEE 144 - Cântecul lui Iorgovan355
-CEE 145 - Iancul356
-CEE 146 - Lupul357
-CEE 147 - Stanciu358
-CEE 148 - Răscolman359
-CEE 149 - Bugean360
-CEE 150 - Frundzî verdi di-o răcitî361
-CEE 151 - A lui Mnihăiță362
-CEE 152 - A lui Costin363
-CEE 153 - Călinaș și Arsinel364
-CEE 154 - A Voicului365
-CEE 155 - Gheorghilaș366
-CEE 156 - Floria367
-CEE 157 - Voicu368
-CEE 158 - La curțile Vâlcului369
-CEE 159 - Mihai370
-CEE 160 - Ion a Solcanului371
-CEE 161 - Pribegii la podu Veneției372
-CEE 162 - Tomoioagă373
-CEE 163 - Cetan374
-CEE 164 - Niculiță375
-CEE 165 - Budiu376
-CEE 166 - Harambașa Hănțilă377
-CEE 167 - Luca378
-CEE 168 - Neacșu haiducu379
-CEE 169 - Crețu haiducul380
-CEE 170 - Codreanul și mocanul381
-CEE 171 - Voinicul și furul382
-CEE 172 - Stan din Bărăgan383
-CEE 173 - Ghimiș384
-CEE 174 - Cântecul lui Sbangă haiducu385
-CEE 175 - Cântecul lui Săcală386
-CEE 176 - Dăian387
-CEE 177 - Zdrelea388
-CEE 178 - Mărunțelu389
-CEE 179 - Crețu390
-CEE 180 - Alde Nae din Vădeni391
-CEE 181 - Păun392
-CEE 182 - Cântecul lui Albulescu393
-CEE 183 - Cântecul lui Niță al Lupului394
-CEE 184 - Bețigaș395
-CEE 185 - Iortoman396
-CEE 186 - Gherghișan397
-CEE 187 - Ghiorghe, Cosma și Maftei398
-CEE 188 - Pârlici399
-CEE 189 - Hoții și popa din Broșteni400
-CEE 190 - Todorică și Florica401
-CEE 191 - A lui Iosim lotrul402
-CEE 192 - Ciobanul, sora și zmeii (leii, turcii)403
-CEE 193 - Costea și Fulga404
-CEE 194 - Otânceală (Potâncu) haiducul405
-CEE 195 - Șalga406
-CEE 196 - Voinicu și Ianuș Unguru407
-CEE 197 - Ionașcu408
-CEE 198 - Radu Calomfirescu409
-CEE 199 - Căpitanul Nica410
-CEE 200 - Aga Bălăceanu411
-CEE 201 - Constantin Brâncoveanu412
-CEE 202 - Bucă-Bucăleț413
-CEE 203 - Marcu și Filip414
-CEE 204 - Țarul Murad și Radu voivoda415
-CEE 205 - Ghiță Cătănuță416
-CEE 206 - Șoimănel417
-CEE 207 - Stoiniel viteazul418
-CEE 208 - Nicolcea419
-CEE 209 - Gheorghiță Poianu420
-CEE 210 - Rafila421
-CEE 211 - George a lu Molin422
+CEE 108 - Ion Pietrariu
+CEE 109 - Dragoș
+CEE 110 - Codău
+CEE 111 - Pantelimon
+CEE 112 - Coroi
+CEE 113 - Darie
+CEE 114 - Vasile cel Mare
+CEE 115 - Pintea viteazul
+CEE 116 - Vili
+CEE 117 - Dobre haiducu
+CEE 118 - Stângu
+CEE 119 - Onea și Coțofeanca
+CEE 120 - Cântecul lui Petrescu
+CEE 121 - Petre Vâlcean
+CEE 122 - Dragu
+CEE 123 - Burcea
+CEE 124 - Radu Groșanu
+CEE 125 - Codreanu
+CEE 126 - Coman
+CEE 127 - Cântecul lui Păun haiducul
+CEE 128 - Cernea
+CEE 129 - Manea haiducul
+CEE 130 - Fulga și Budac
+CEE 131 - Căpitanu
+CEE 132 - Pătru logofătu
+CEE 133 - Răducanu
+CEE 134 - Comănac
+CEE 135 - Petru haiducul
+CEE 136 - La cârciuma din pădure
+CEE 137 - Șogor
+CEE 138 - Voicu haiducul
+CEE 139 - Terente haiducul
+CEE 140 - Gruian
+CEE 141 - Stancu Lupu
+CEE 142 - Nedea voinicul
+CEE 143 - Coste
+CEE 144 - Cântecul lui Iorgovan
+CEE 145 - Iancul
+CEE 146 - Lupul
+CEE 147 - Stanciu
+CEE 148 - Răscolman
+CEE 149 - Bugean
+CEE 150 - Frundzî verdi di-o răcitî
+CEE 151 - A lui Mnihăiță
+CEE 152 - A lui Costin
+CEE 153 - Călinaș și Arsinel
+CEE 154 - A Voicului
+CEE 155 - Gheorghilaș
+CEE 156 - Floria
+CEE 157 - Voicu
+CEE 158 - La curțile Vâlcului
+CEE 159 - Mihai
+CEE 160 - Ion a Solcanului
+CEE 161 - Pribegii la podu Veneției
+CEE 162 - Tomoioagă
+CEE 163 - Cetan
+CEE 164 - Niculiță
+CEE 165 - Budiu
+CEE 166 - Harambașa Hănțilă
+CEE 167 - Luca
+CEE 168 - Neacșu haiducu
+CEE 169 - Crețu haiducul
+CEE 170 - Codreanul și mocanul
+CEE 171 - Voinicul și furul
+CEE 172 - Stan din Bărăgan
+CEE 173 - Ghimiș
+CEE 174 - Cântecul lui Sbangă haiducu
+CEE 175 - Cântecul lui Săcală
+CEE 176 - Dăian
+CEE 177 - Zdrelea
+CEE 178 - Mărunțelu
+CEE 179 - Crețu
+CEE 180 - Alde Nae din Vădeni
+CEE 181 - Păun
+CEE 182 - Cântecul lui Albulescu
+CEE 183 - Cântecul lui Niță al Lupului
+CEE 184 - Bețigaș
+CEE 185 - Iortoman
+CEE 186 - Gherghișan
+CEE 187 - Ghiorghe, Cosma și Maftei
+CEE 188 - Pârlici
+CEE 189 - Hoții și popa din Broșteni
+CEE 190 - Todorică și Florica
+CEE 191 - A lui Iosim lotrul
+CEE 192 - Ciobanul, sora și zmeii (leii, turcii)
+CEE 193 - Costea și Fulga
+CEE 194 - Otânceală (Potâncu) haiducul
+CEE 195 - Șalga
+CEE 196 - Voinicu și Ianuș Unguru
+CEE 197 - Ionașcu
+CEE 198 - Radu Calomfirescu
+CEE 199 - Căpitanul Nica
+CEE 200 - Aga Bălăceanu
+CEE 201 - Constantin Brâncoveanu
+CEE 202 - Bucă-Bucăleț
+CEE 203 - Marcu și Filip
+CEE 204 - Țarul Murad și Radu voivoda
+CEE 205 - Ghiță Cătănuță
+CEE 206 - Șoimănel
+CEE 207 - Stoiniel viteazul
+CEE 208 - Nicolcea
+CEE 209 - Gheorghiță Poianu
+CEE 210 - Rafila
+CEE 211 - George a lu Molin
      
      
 Xxxxx
