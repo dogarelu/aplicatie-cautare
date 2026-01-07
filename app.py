@@ -8,6 +8,7 @@ import platform
 import requests
 import time
 import os
+import multiprocessing
 import json
 from typing import List, Set, Dict
 from pathlib import Path
@@ -3163,8 +3164,14 @@ def create_gui():
     results_title_label = None
     match_checkboxes = []  # List of (match, checkbox_var) tuples for export
 
-if __name__ == "__main__":
+def main():
     create_gui()
     if root is not None:
         root.mainloop()
+
+
+if __name__ == "__main__":
+    # Required on Windows/PyInstaller to prevent child processes from re-running GUI
+    multiprocessing.freeze_support()
+    main()
 
