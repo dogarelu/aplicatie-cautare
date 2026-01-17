@@ -1878,8 +1878,8 @@ def open_image(image_path: Path):
         if system == "Darwin":  # macOS
             subprocess.run(["open", str(image_path)])
         elif system == "Windows":
-            import os
-            os.startfile(str(image_path))
+            # Use Explorer to preserve folder context for Photos navigation
+            subprocess.run(["explorer", str(image_path)])
         else:  # Linux and others
             subprocess.run(["xdg-open", str(image_path)])
     except Exception as e:
