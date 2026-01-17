@@ -10,7 +10,7 @@ import time
 import os
 import multiprocessing
 import json
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Optional, Tuple
 from pathlib import Path
 from rapidfuzz import fuzz
 from rapidfuzz.distance import Levenshtein
@@ -409,6 +409,123 @@ def extract_page_number_from_image(img_name: str) -> str:
         number = match.group(0)
         return number.lstrip('0') or '0'
     return ""
+
+
+def extract_page_numbers_from_image(img_name: str) -> List[int]:
+    """
+    Extract all page numbers from image name (handles ranges like pag230-231.jpg).
+    Returns a list of ints (leading zeros removed).
+    """
+    if not img_name:
+        return []
+    numbers = re.findall(r'\d+', img_name)
+    pages = []
+    for num in numbers:
+        try:
+            pages.append(int(num.lstrip('0') or '0'))
+        except ValueError:
+            continue
+    return pages
+
+
+def parse_title_reference_input(raw_text: str) -> Tuple[str, Optional[int]]:
+    """
+    Parse input like "Fata bârbulesei — Bibicescu-PPT, p. 234"
+    and return (volume_name, page_num).
+    """
+    if not raw_text:
+        return "", None
+    text = raw_text.strip()
+    if "=>" in text:
+        text = text.split("=>", 1)[0].strip()
+
+    page_num = None
+    page_match = re.search(r"\bp\.?\s*(\d+)\b", text, flags=re.IGNORECASE)
+    if page_match:
+        try:
+            page_num = int(page_match.group(1))
+        except ValueError:
+            page_num = None
+    else:
+        # Fallback to last number in the text
+        nums = re.findall(r"\d+", text)
+        if nums:
+            try:
+                page_num = int(nums[-1].lstrip('0') or '0')
+            except ValueError:
+                page_num = None
+
+    # Extract volume part (after dash if present)
+    parts = re.split(r"\s+[—–-]\s+", text, maxsplit=1)
+    volume_part = parts[1] if len(parts) > 1 else text
+    # Remove page segment and anything after
+    volume_part = re.sub(r"\bp\.?\s*\d+.*$", "", volume_part, flags=re.IGNORECASE)
+    # Keep only the part before the last comma if present
+    if "," in volume_part:
+        volume_part = volume_part.rsplit(",", 1)[0]
+    volume_name = volume_part.strip()
+
+    return volume_name, page_num
+
+
+def _normalize_volume_name(name: str) -> str:
+    if not name:
+        return ""
+    name = name.strip().lower().replace("_", " ")
+    name = re.sub(r"\s+", " ", name)
+    return name
+
+
+def find_volume_path_by_name(volume_name: str) -> Tuple[Optional[Path], List[Path]]:
+    """Find a volume path by name among selected volumes or entire biblioteca."""
+    if not volume_name:
+        return None, []
+    normalized_target = _normalize_volume_name(volume_name)
+    candidates = []
+
+    volume_paths = []
+    if selected_volumes:
+        volume_paths = [Path(p) for p in selected_volumes]
+    elif selected_root_folder:
+        tmp_vols: List[str] = []
+        _find_all_volumes(Path(selected_root_folder), tmp_vols)
+        volume_paths = [Path(p) for p in tmp_vols]
+
+    for path in volume_paths:
+        if _normalize_volume_name(path.name) == normalized_target:
+            candidates.append(path)
+
+    if len(candidates) == 1:
+        return candidates[0], candidates
+    return None, candidates
+
+
+def find_image_for_page_in_volume(volume_path: Path, target_page: int) -> Optional[str]:
+    """Scan ocr.txt files in volume to find image filename for target page."""
+    if not volume_path.exists() or target_page is None:
+        return None
+    txt_files = sorted(volume_path.glob("*.txt"))
+    for txt in txt_files:
+        try:
+            with txt.open("r", encoding="utf-8") as f:
+                for line in f:
+                    m = PAGE_HEADER_RE.match(line.strip())
+                    if not m:
+                        continue
+                    header_page = m.group(1).strip()
+                    img_name = m.group(2).strip()
+                    image_pages = extract_page_numbers_from_image(img_name)
+                    if target_page in image_pages:
+                        return img_name
+                    if not image_pages:
+                        try:
+                            if int(header_page) == target_page:
+                                return img_name
+                        except ValueError:
+                            continue
+        except Exception:
+            continue
+    return None
 
 
 # ---------- Table of Contents Functions ----------
@@ -1870,7 +1987,7 @@ def _show_image_in_viewer(index: int):
         img = Image.open(path)
         max_w, max_h = _get_viewer_image_max_size()
         try:
-            img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)  # Pillow >=9.1
+            img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
         except Exception:
             img.thumbnail((max_w, max_h))
         photo = ImageTk.PhotoImage(img)
@@ -1880,6 +1997,7 @@ def _show_image_in_viewer(index: int):
 
     state["photo"] = photo  # keep reference
     state["label"].config(image=photo)
+    state["title"].config(text=f"{path.name}  ({index + 1}/{len(state['images'])})")
     state["title"].config(text=f"{path.name}  ({index + 1}/{len(state['images'])})")
 
 
@@ -1903,7 +2021,7 @@ def _show_pdf_page(index: int):
 
     try:
         page = state["pdf_doc"].load_page(page_idx)
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # modest zoom
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # modest zoom for clarity
         mode = "RGBA" if pix.alpha else "RGB"
         img = Image.frombytes(mode, (pix.width, pix.height), pix.samples)
         max_w, max_h = _get_viewer_image_max_size()
@@ -2999,6 +3117,62 @@ def on_generate():
     search_thread.start()
 
 
+def on_open_title_image():
+    """Open image by title reference input (Title — Volume, p. N)."""
+    global title_entry
+    raw_text = title_entry.get().strip() if title_entry else ""
+    if not raw_text:
+        messagebox.showerror(
+            "Input lipsă",
+            "Introdu un titlu în formatul: Titlu — Volum, p. 234"
+        )
+        return
+
+    if not selected_root_folder:
+        messagebox.showerror(
+            "Bibliotecă lipsă",
+            "Selectează mai întâi o bibliotecă."
+        )
+        return
+
+    volume_name, page_num = parse_title_reference_input(raw_text)
+    if not volume_name or page_num is None:
+        messagebox.showerror(
+            "Input invalid",
+            "Nu am putut citi volumul sau pagina. Exemplu: Titlu — Bibicescu-PPT, p. 234"
+        )
+        return
+
+    volume_path, candidates = find_volume_path_by_name(volume_name)
+    if volume_path is None:
+        if candidates:
+            names = "\n".join(str(p) for p in candidates[:8])
+            messagebox.showerror(
+                "Volum ambiguu",
+                f"Au fost găsite mai multe volume cu acest nume:\n{names}\n\nRedenumește sau clarifică volumul."
+            )
+        else:
+            messagebox.showerror(
+                "Volum negăsit",
+                f"Nu am găsit volumul '{volume_name}' în bibliotecă."
+            )
+        return
+
+    image_filename = find_image_for_page_in_volume(volume_path, page_num)
+    if not image_filename:
+        messagebox.showerror(
+            "Pagină negăsită",
+            f"Nu am găsit pagina {page_num} în OCR pentru volumul '{volume_path.name}'."
+        )
+        return
+
+    image_path = find_image_path(volume_path, image_filename)
+    if image_path.suffix.lower() == ".pdf":
+        open_pdf_with_navigation(image_path)
+    else:
+        open_image_with_navigation(image_path)
+
+
 def _get_text_with_checkmark(text: str, add_checkmark: bool, tree_width: int = 600) -> str:
     """Get text with checkmark on the left before the title.
     tree_width: width of the tree column in pixels (default 600)"""
@@ -3298,6 +3472,7 @@ results_canvas = None
 export_button_frame = None
 results_title_label = None
 entry = None
+title_entry = None
 word_span_var = None
 word_order_var = None
 folder_label = None
@@ -3327,7 +3502,7 @@ def create_gui():
     global library_tree, match_checkboxes
     global results_window, results_scrollable_frame, results_canvas
     global export_button_frame, results_title_label
-    global entry, word_span_var, word_order_var
+    global entry, title_entry, word_span_var, word_order_var
     global folder_label, select_folder_button, button
     
     # Create main window with library theme
@@ -3541,6 +3716,41 @@ def create_gui():
         bd=2
     )
     entry.pack(fill=tk.X, pady=5)
+
+    # Title reference section (open page by title)
+    title_search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    title_search_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    tk.Label(
+        title_search_frame,
+        text="Titlu (deschide pagina):",
+        font=("Arial", 26, "bold"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(anchor="w", pady=(0, 5))
+
+    title_entry = tk.Entry(
+        title_search_frame,
+        font=("Arial", 26),
+        relief=tk.SUNKEN,
+        bd=2
+    )
+    title_entry.pack(fill=tk.X, pady=5)
+    title_entry.bind("<Return>", lambda e: on_open_title_image())
+
+    title_open_btn = tk.Button(
+        title_search_frame,
+        text="📖 Deschide pagina",
+        command=on_open_title_image,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=("Arial", 26, "bold"),
+        relief=tk.RAISED,
+        padx=15,
+        pady=8,
+        cursor="hand2"
+    )
+    title_open_btn.pack(anchor="w", pady=(5, 0))
 
     # Word span section
     word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
