@@ -1931,9 +1931,8 @@ def open_image(image_path: Path):
         if system == "Darwin":  # macOS
             subprocess.run(["open", str(image_path)])
         elif system == "Windows":
-            # Provide folder context so Photos shows prev/next arrows
-            context_image = _ensure_windows_photos_context(image_path)
-            subprocess.run(["explorer", str(context_image)])
+            # Open File Explorer with the image selected (no Photos app)
+            subprocess.run(["explorer", "/select,", str(image_path)])
         else:  # Linux and others
             subprocess.run(["xdg-open", str(image_path)])
     except Exception as e:
@@ -3795,41 +3794,6 @@ def create_gui():
     )
     entry.pack(fill=tk.X, pady=5)
 
-    # Title reference section (open page by title)
-    title_search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    title_search_frame.pack(padx=15, pady=10, fill=tk.X)
-
-    tk.Label(
-        title_search_frame,
-        text="Titlu (deschide pagina):",
-        font=("Arial", 26, "bold"),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
-    ).pack(anchor="w", pady=(0, 5))
-
-    title_entry = tk.Entry(
-        title_search_frame,
-        font=("Arial", 26),
-        relief=tk.SUNKEN,
-        bd=2
-    )
-    title_entry.pack(fill=tk.X, pady=5)
-    title_entry.bind("<Return>", lambda e: on_open_title_image())
-
-    title_open_btn = tk.Button(
-        title_search_frame,
-        text="📖 Deschide pagina",
-        command=on_open_title_image,
-        bg=COLOR_SHELF,
-        fg="white",
-        font=("Arial", 26, "bold"),
-        relief=tk.RAISED,
-        padx=15,
-        pady=8,
-        cursor="hand2"
-    )
-    title_open_btn.pack(anchor="w", pady=(5, 0))
-
     # Word span section
     word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
     word_span_frame.pack(padx=15, pady=5, fill=tk.X)
@@ -3907,6 +3871,41 @@ def create_gui():
         justify=tk.LEFT
     )
     status_label.pack(pady=(0, 10), anchor="w", padx=20)
+
+    # Title reference section (open page by title)
+    title_search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    title_search_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    tk.Label(
+        title_search_frame,
+        text="Titlu (deschide pagina):",
+        font=("Arial", 26, "bold"),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(anchor="w", pady=(0, 5))
+
+    title_entry = tk.Entry(
+        title_search_frame,
+        font=("Arial", 26),
+        relief=tk.SUNKEN,
+        bd=2
+    )
+    title_entry.pack(fill=tk.X, pady=5)
+    title_entry.bind("<Return>", lambda e: on_open_title_image())
+
+    title_open_btn = tk.Button(
+        title_search_frame,
+        text="📖 Deschide pagina",
+        command=on_open_title_image,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=("Arial", 26, "bold"),
+        relief=tk.RAISED,
+        padx=15,
+        pady=8,
+        cursor="hand2"
+    )
+    title_open_btn.pack(anchor="w", pady=(5, 0))
 
     # Global variable to store results window
     results_window = None
