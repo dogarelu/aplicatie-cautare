@@ -1886,6 +1886,20 @@ def open_image(image_path: Path):
         messagebox.showerror("Error", f"Failed to open image: {str(e)}")
 
 
+def reveal_in_file_manager(path: Path):
+    """Reveal/select a file in the OS file manager (best-effort)."""
+    try:
+        system = platform.system()
+        if system == "Windows":
+            subprocess.run(["explorer", "/select,", str(path)])
+        elif system == "Darwin":  # macOS
+            subprocess.run(["open", "-R", str(path)])
+        else:  # Linux and others
+            subprocess.run(["xdg-open", str(path.parent)])
+    except Exception:
+        pass
+
+
 def _sort_images_by_page(images: list) -> list:
     """Sort images by page number extracted from filename; fallback to name."""
     def sort_key(p: Path):
@@ -2221,6 +2235,10 @@ def open_image_with_navigation(image_path: Path):
     Open an image with left/right navigation between neighboring pages.
     Supports common raster formats; PDFs handled separately.
     """
+    if platform.system() == "Windows":
+        open_image(image_path)
+        reveal_in_file_manager(image_path)
+        return
     imgs = _list_neighbor_images(image_path)
     if image_path not in imgs and image_path.exists():
         imgs.append(image_path)
