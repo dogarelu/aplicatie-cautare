@@ -4,8 +4,6 @@ import shutil
 import sys
 import re
 import subprocess
-import hashlib
-import atexit
 import platform
 import requests
 import time
@@ -1869,57 +1867,6 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
     doc.save(str(output_dir / "default.docx"))
 
 
-def _ensure_windows_photos_context(image_path: Path) -> Path:
-    """
-    Create a temporary folder with hardlinks (or copies) to neighbor images so
-    Windows Photos has folder context for prev/next navigation.
-    Returns the path to the linked image inside the context folder.
-    """
-    imgs = _list_neighbor_images(image_path)
-    if image_path not in imgs and image_path.exists():
-        imgs.append(image_path)
-        imgs = _sort_images_by_page(imgs)
-
-    base_dir = get_output_path() / ".photos_context"
-    base_dir.mkdir(parents=True, exist_ok=True)
-
-    folder_key = hashlib.md5(str(image_path.parent).encode("utf-8")).hexdigest()
-    context_dir = base_dir / folder_key
-    context_dir.mkdir(parents=True, exist_ok=True)
-
-    for img in imgs:
-        target = context_dir / img.name
-        if target.exists():
-            continue
-        try:
-            os.link(str(img), str(target))
-        except Exception:
-            try:
-                shutil.copy2(str(img), str(target))
-            except Exception:
-                # If we can't link/copy, skip this file
-                pass
-
-    return context_dir / image_path.name
-
-
-def cleanup_photos_context():
-    """Remove temporary Windows Photos context folders created by the app."""
-    if platform.system() != "Windows":
-        return
-    try:
-        base_dir = get_output_path() / ".photos_context"
-        if base_dir.exists():
-            shutil.rmtree(base_dir, ignore_errors=True)
-    except Exception:
-        pass
-
-
-# Ensure cleanup runs even on abrupt app exit (Windows only)
-if platform.system() == "Windows":
-    atexit.register(cleanup_photos_context)
-
-
 def open_image(image_path: Path):
     """Open an image file using the system's default image viewer."""
     if not image_path.exists():
@@ -2290,7 +2237,6 @@ def open_image_with_navigation(image_path: Path):
     """
     if platform.system() == "Windows":
         open_image(image_path)
-        reveal_in_file_manager(image_path)
         return
     imgs = _list_neighbor_images(image_path)
     if image_path not in imgs and image_path.exists():
@@ -3583,7 +3529,6 @@ def create_gui():
     root.configure(bg="#F5E6D3")  # Warm beige background like old books
 
     def _on_app_close():
-        cleanup_photos_context()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", _on_app_close)
