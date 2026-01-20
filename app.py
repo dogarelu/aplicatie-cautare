@@ -65,6 +65,20 @@ ROMANIAN_DIACRITIC_MAP = {
 COMBINING_CEDILLA = "\u0327"
 COMBINING_COMMA_BELOW = "\u0326"
 
+# Spacing diacritics used in some legacy texts/fonts
+SPACING_DIACRITIC_SEQUENCES = {
+    "a\u02D8": "ă",
+    "A\u02D8": "Ă",
+    "a\u02C6": "â",
+    "A\u02C6": "Â",
+    "i\u02C6": "î",
+    "I\u02C6": "Î",
+    "s\u00B8": "ș",
+    "S\u00B8": "Ș",
+    "t\u00B8": "ț",
+    "T\u00B8": "Ț",
+}
+
 # Mapping pentru litere similare (pentru căutare OCR)
 # Mapează diacritice la forma de bază pentru matching flexibil
 SIMILAR_LETTERS_MAP = {
@@ -187,10 +201,32 @@ def normalize_romanian_diacritics(s: str) -> str:
         return s
     s = unicodedata.normalize("NFC", s)
     s = s.translate(ROMANIAN_DIACRITIC_MAP)
+    for seq, repl in SPACING_DIACRITIC_SEQUENCES.items():
+        if seq in s:
+            s = s.replace(seq, repl)
     if COMBINING_CEDILLA in s:
         s = s.replace(COMBINING_CEDILLA, COMBINING_COMMA_BELOW)
     s = unicodedata.normalize("NFC", s)
     return s
+
+def normalize_output_text(s: str) -> str:
+    """Normalizează textul pentru output (NFC + diacritice românești standard)."""
+    if not s:
+        return s
+    return normalize_romanian_diacritics(s)
+
+def normalize_docx_document(doc: Document) -> None:
+    """Normalizează toate run-urile dintr-un document DOCX."""
+    def normalize_paragraphs(paragraphs):
+        for para in paragraphs:
+            for run in para.runs:
+                run.text = normalize_output_text(run.text)
+
+    normalize_paragraphs(doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                normalize_paragraphs(cell.paragraphs)
 
 def normalize_similar_letters(s: str) -> str:
     """
@@ -1836,8 +1872,8 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
             for match in matches:
                 for snippet_line in match['snippet']:
                     if snippet_line.strip():
-                        f.write(snippet_line + "\n")
-                f.write(f"({match['folder']}, p. {match['page_num']})\n")
+                        f.write(normalize_output_text(snippet_line) + "\n")
+                f.write(normalize_output_text(f"({match['folder']}, p. {match['page_num']})") + "\n")
                 f.write("\n")
     
     # Write results to Word document
@@ -1866,7 +1902,7 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
     # Add title
     title_para = doc.add_paragraph()
     title_run = title_para.add_run('Search results for "')
-    search_run = title_para.add_run(query_text)
+    search_run = title_para.add_run(normalize_output_text(query_text))
     search_run.italic = True
     title_para.add_run('"')
     doc.add_paragraph()
@@ -1878,7 +1914,7 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
         for match in matches:
             for snippet_line in match['snippet']:
                 if snippet_line.strip():
-                    para = doc.add_paragraph(snippet_line.strip())
+                    para = doc.add_paragraph(normalize_output_text(snippet_line.strip()))
                     try:
                         para.style = "2-Versuri-centru"
                     except KeyError:
@@ -1886,9 +1922,9 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
             # Build source text with title if available
             title = match.get("title", "")
             if title:
-                source_text = f"({match['folder']}, {title}, p. {match['page_num']})"
+                source_text = normalize_output_text(f"({match['folder']}, {title}, p. {match['page_num']})")
             else:
-                source_text = f"({match['folder']}, p. {match['page_num']})"
+                source_text = normalize_output_text(f"({match['folder']}, p. {match['page_num']})")
             para = doc.add_paragraph(source_text)
             try:
                 para.style = "4-Sursa text"
@@ -1896,6 +1932,8 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
                 pass
             doc.add_paragraph()
     
+    # Final pass: normalize all document text
+    normalize_docx_document(doc)
     # Save to output_dir
     doc.save(str(output_dir / "default.docx"))
 
@@ -2921,7 +2959,7 @@ def export_selected_to_docx(search_term: str):
         # Add title
         title_para = doc.add_paragraph()
         title_run = title_para.add_run('Search results for "')
-        search_run = title_para.add_run(search_term)
+        search_run = title_para.add_run(normalize_output_text(search_term))
         search_run.italic = True
         title_para.add_run('"')
         doc.add_paragraph()
@@ -2944,7 +2982,7 @@ def export_selected_to_docx(search_term: str):
                 # Add context lines to document
                 for line in context_lines:
                     if line.strip():
-                        para = doc.add_paragraph(line.strip())
+                        para = doc.add_paragraph(normalize_output_text(line.strip()))
                         try:
                             para.style = "2-Versuri-centru"
                         except KeyError:
@@ -2954,13 +2992,13 @@ def export_selected_to_docx(search_term: str):
                 if 'snippet' in match and match['snippet']:
                     for snippet_line in match['snippet']:
                         if snippet_line.strip():
-                            para = doc.add_paragraph(snippet_line.strip())
+                            para = doc.add_paragraph(normalize_output_text(snippet_line.strip()))
                             try:
                                 para.style = "2-Versuri-centru"
                             except KeyError:
                                 pass
                 elif 'matched_fragment' in match and match['matched_fragment']:
-                    para = doc.add_paragraph(match['matched_fragment'].strip())
+                    para = doc.add_paragraph(normalize_output_text(match['matched_fragment'].strip()))
                     try:
                         para.style = "2-Versuri-centru"
                     except KeyError:
@@ -2974,7 +3012,9 @@ def export_selected_to_docx(search_term: str):
             
             # Capitalize only first letter of title
             if title:
+                title = normalize_output_text(title)
                 title = title[0].upper() + title[1:].lower() if len(title) > 0 else title
+                title = normalize_output_text(title)
             
             # First line: TITLE (ITALIC) — (em dash) VOLUME TITLE, p. PAGE NUMBER (Arial 10)
             if title:
@@ -2985,12 +3025,12 @@ def export_selected_to_docx(search_term: str):
                 except KeyError:
                     pass
                 # Then add content with formatting
-                title_run = title_para.add_run(title)
+                title_run = title_para.add_run(normalize_output_text(title))
                 title_run.italic = True
-                title_para.add_run(f" — {volume_title}, p. {page_num}")
+                title_para.add_run(normalize_output_text(f" — {volume_title}, p. {page_num}"))
             else:
                 # If no title, just show volume and page
-                title_para = doc.add_paragraph(f"{volume_title}, p. {page_num}")
+                title_para = doc.add_paragraph(normalize_output_text(f"{volume_title}, p. {page_num}"))
                 # Apply style first
                 try:
                     title_para.style = "3-Sursa text"
@@ -3000,7 +3040,7 @@ def export_selected_to_docx(search_term: str):
             # Second line: THE CODE / CODES (Arial 10)
             # Always add code line, use "qqq" if no code found
             code_text = code if code else "qqq"
-            code_para = doc.add_paragraph(code_text)
+            code_para = doc.add_paragraph(normalize_output_text(code_text))
             # Apply style first
             try:
                 code_para.style = "3-Sursa text"
@@ -3029,6 +3069,8 @@ def export_selected_to_docx(search_term: str):
             # User cancelled
             return
         
+        # Final pass: normalize all document text
+        normalize_docx_document(doc)
         # Save document
         doc.save(save_path)
         
