@@ -10,6 +10,7 @@ import time
 import os
 import multiprocessing
 import json
+import unicodedata
 from typing import List, Set, Dict, Optional, Tuple
 from pathlib import Path
 from rapidfuzz import fuzz
@@ -52,6 +53,18 @@ MIN_PAGE_WORDS = 6
 DEFAULT_THRESHOLD = 80
 
 # ---------- Text Normalization ----------
+# Map old cedilla forms to Romanian standard (comma-below)
+ROMANIAN_DIACRITIC_MAP = {
+    ord("Ş"): "Ș",
+    ord("Ţ"): "Ț",
+    ord("ş"): "ș",
+    ord("ţ"): "ț",
+}
+
+# Combining marks (cedilla -> comma below)
+COMBINING_CEDILLA = "\u0327"
+COMBINING_COMMA_BELOW = "\u0326"
+
 # Mapping pentru litere similare (pentru căutare OCR)
 # Mapează diacritice la forma de bază pentru matching flexibil
 SIMILAR_LETTERS_MAP = {
@@ -165,6 +178,20 @@ def save_last_export_dir(directory: str):
 
 # ---------- Text Normalization Functions ----------
 
+def normalize_romanian_diacritics(s: str) -> str:
+    """
+    Normalizează diacriticele românești la standardul cu virgulă dedesubt (ș/ț).
+    Corectează formele cu sedilă și normalizează Unicode (NFC).
+    """
+    if not s:
+        return s
+    s = unicodedata.normalize("NFC", s)
+    s = s.translate(ROMANIAN_DIACRITIC_MAP)
+    if COMBINING_CEDILLA in s:
+        s = s.replace(COMBINING_CEDILLA, COMBINING_COMMA_BELOW)
+    s = unicodedata.normalize("NFC", s)
+    return s
+
 def normalize_similar_letters(s: str) -> str:
     """
     Normalizează litere similare la forma de bază.
@@ -181,6 +208,7 @@ def normalize_text(s: str) -> str:
     Normalizare simplă: litere mici, fără punctuație, spații compacte.
     Aplică și normalizarea literelor similare pentru matching flexibil.
     """
+    s = normalize_romanian_diacritics(s)
     s = s.lower()
     s = re.sub(r"[^\w\săâîșțáéíóúàèìòùâêîôûäëïöü-]", " ", s, flags=re.UNICODE)
     s = re.sub(r"\s+", " ", s).strip()
@@ -562,6 +590,7 @@ def load_cuprins(volume_path: Path) -> Dict[int, str]:
         with cuprins_file.open("r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
+                line = normalize_romanian_diacritics(line)
                 if not line:
                     continue
                 # Parse format: "TITLE -- PAGE_NUMBER"
@@ -758,6 +787,7 @@ def load_index_rtf(index_file: Path) -> Dict[str, List[str]]:
         with index_file.open("r", encoding="utf-8", errors="ignore") as f:
             for line in f:
                 line = line.strip()
+                line = normalize_romanian_diacritics(line)
                 if not line or len(line) < 3:
                     continue
                 
@@ -774,7 +804,7 @@ def load_index_rtf(index_file: Path) -> Dict[str, List[str]]:
                 if len(parts) != 2:
                     continue
                 
-                title_clean = parts[0].strip()
+                    title_clean = parts[0].strip()
                 codes_part = parts[1].strip()
                 
                 # Only process if we have a reasonable title (at least 3 characters)
@@ -847,6 +877,7 @@ def load_coduri_doc() -> Dict[str, str]:
                 doc = Document(str(coduri_file))
                 for para in doc.paragraphs:
                     line = para.text.strip()
+                    line = normalize_romanian_diacritics(line)
                     if line:
                         # Look for pattern: "BF 74 - TITLE" or "CEE 16 - TITLE"
                         # Also handle codes with suffixes like "BF 5.I" (though they may not exist in this file)
@@ -867,6 +898,7 @@ def load_coduri_doc() -> Dict[str, str]:
                 with coduri_file.open("r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
                         line = line.strip()
+                        line = normalize_romanian_diacritics(line)
                         if line:
                             # Skip lines that don't start with BF or CEE
                             if not re.match(r'^(BF|CEE)\s+\d+', line, re.IGNORECASE):
@@ -1264,6 +1296,7 @@ def _load_pages_from_folder(folder: Path, pages: list):
                     pages_in_file += 1
 
                 for line in f:
+                    line = normalize_romanian_diacritics(line)
                     m = PAGE_HEADER_RE.match(line)
                     if m:
                         flush_page()
@@ -2405,7 +2438,10 @@ def create_results_window(search_term: str = ""):
         results_window.title(f"Rezultate Căutare: {title_search}")
     else:
         results_window.title("Rezultate Căutare")
-    results_window.minsize(800, 500)
+    screen_w = root.winfo_screenwidth()
+    screen_h = root.winfo_screenheight()
+    results_window.minsize(520, 420)
+    results_window.geometry("520x420")
     results_window.configure(bg=COLOR_BACKGROUND)
     
     # Ensure window appears in front, especially on Windows when main window is fullscreen
@@ -2422,7 +2458,7 @@ def create_results_window(search_term: str = ""):
     
     results_title_label = tk.Text(
         header_frame,
-        font=("Arial", 36, "bold"),
+        font=UI_FONTS.get("results_title", ("Arial", 22, "bold")),
         bg=COLOR_BACKGROUND,
         fg=COLOR_TEXT,
         height=1,
@@ -2480,6 +2516,25 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     
     # Create new results window with search term
     create_results_window(search_term)
+
+    # Prepare wraplength updates on resize
+    global results_wrap_labels
+    results_wrap_labels = []
+
+    def _update_results_wraplength(event=None):
+        if not results_window or not results_window.winfo_exists():
+            return
+        width = results_window.winfo_width()
+        if width <= 1:
+            return
+        wrap = max(int(220 * UI_SCALE), int(width * 0.22))
+        for label in results_wrap_labels:
+            try:
+                label.config(wraplength=wrap)
+            except Exception:
+                pass
+
+    results_window.bind("<Configure>", _update_results_wraplength)
     
     # Update title with result count and search terms
     num_results = len(matches)
@@ -2511,7 +2566,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
     results_title_label.insert(tk.END, f" ({num_results} citate)")
     
     # Configure bold tag
-    results_title_label.tag_config("bold", font=("Arial", 36, "bold"))
+    results_title_label.tag_config("bold", font=UI_FONTS.get("results_bold", ("Arial", 22, "bold")))
     
     # Make read-only
     results_title_label.config(state=tk.DISABLED)
@@ -2524,7 +2579,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         no_results_label = tk.Label(
             results_scrollable_frame,
             text="Nu s-au găsit rezultate.",
-            font=("Arial", 20),
+            font=UI_FONTS.get("label", ("Arial", 16)),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT
         )
@@ -2549,7 +2604,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         checkbox_btn = tk.Button(
             row_frame,
             text="☑",
-            font=("Arial", 32),
+            font=UI_FONTS.get("checkbox", ("Arial", 18)),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             relief=tk.FLAT,
@@ -2561,9 +2616,9 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         
         def update_checkbox_display(var=None, index=None, mode=None, btn=checkbox_btn, var_ref=checkbox_var):
             if var_ref.get():
-                btn.config(text="☑", font=("Arial", 32))
+                btn.config(text="☑", font=UI_FONTS.get("checkbox", ("Arial", 18)))
             else:
-                btn.config(text="☐", font=("Arial", 32))
+                btn.config(text="☐", font=UI_FONTS.get("checkbox", ("Arial", 18)))
         
         def toggle_checkbox(var_ref=checkbox_var):
             var_ref.set(not var_ref.get())
@@ -2583,13 +2638,14 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         volume_label = tk.Label(
             volume_title_frame,
             text=match["folder"],
-            font=("Arial", 20),
+            font=UI_FONTS.get("results_row", ("Arial", 14)),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             anchor="w",
-            wraplength=200
+            wraplength=int(220 * UI_SCALE)
         )
         volume_label.pack(anchor="w")
+        results_wrap_labels.append(volume_label)
         
         # Title (if available) - displayed under volume name
         title = match.get("title", "")
@@ -2597,25 +2653,27 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             title_label = tk.Label(
                 volume_title_frame,
                 text=title,
-                font=("Arial", 18, "italic"),
+                font=UI_FONTS.get("results_row_italic", ("Arial", 13, "italic")),
                 bg=COLOR_BACKGROUND,
                 fg=COLOR_ACCENT,
                 anchor="w",
-                wraplength=300
+                wraplength=int(240 * UI_SCALE)
             )
             title_label.pack(anchor="w", pady=(2, 0))
+            results_wrap_labels.append(title_label)
             
             # Code (if available) - displayed under title
             code = match.get("code", "")
             if code:
+                max_code_chars = max(12, int(28 * UI_SCALE))
+                code_display = _format_code_display(code, max_code_chars, second_prefix_len=7)
                 code_label = tk.Label(
                     volume_title_frame,
-                    text=code,
-                    font=("Arial", 16),
+                    text=code_display,
+                    font=UI_FONTS.get("results_row", ("Arial", 14)),
                     bg=COLOR_BACKGROUND,
                     fg=COLOR_TEXT,
-                    anchor="w",
-                    wraplength=300
+                    anchor="w"
                 )
                 code_label.pack(anchor="w", pady=(2, 0))
         
@@ -2628,7 +2686,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                 btn = tk.Button(
                     row_frame,
                     text="📷",
-                    font=("Arial", 18),
+                    font=UI_FONTS.get("button_small", ("Arial", 14, "bold")),
                     bg=COLOR_BOOK,
                     fg=COLOR_TEXT,
                     relief=tk.RAISED,
@@ -2646,7 +2704,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             page_label = tk.Label(
                 row_frame,
                 text=f"p. {match['page_num']}",
-                font=("Arial", 20),
+                font=UI_FONTS.get("page", ("Arial", 14)),
                 bg=COLOR_BACKGROUND,
                 fg=COLOR_TEXT
             )
@@ -2737,7 +2795,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
         # Create a Text widget for formatted quote (supports bold)
         quote_text_widget = tk.Text(
             row_frame,
-            font=("Arial", 20),
+            font=UI_FONTS.get("quote", ("Arial", 14)),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             height=4,
@@ -2773,7 +2831,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                     end_pos = f"1.0+{char_count + len(quote_words_list[i])}c"
                     quote_text_widget.tag_add("bold", start_pos, end_pos)
         
-        quote_text_widget.tag_config("bold", font=("Arial", 20, "bold"))
+        quote_text_widget.tag_config("bold", font=UI_FONTS.get("quote_bold", ("Arial", 14, "bold")))
         quote_text_widget.config(state=tk.DISABLED)  # Make read-only after formatting
     
     # Update scroll region
@@ -2794,7 +2852,7 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
             command=lambda: export_selected_to_docx(search_term),
             bg=COLOR_SHELF,
             fg="white",
-            font=("Arial", 30, "bold"),
+            font=UI_FONTS.get("export", ("Arial", 18, "bold")),
             relief=tk.RAISED,
             padx=20,
             pady=10,
@@ -2989,7 +3047,7 @@ def export_selected_to_docx(search_term: str):
         msg_label = tk.Label(
             success_dialog,
             text=msg_text,
-            font=("Arial", 20),
+            font=UI_FONTS.get("label", ("Arial", 16)),
             bg=COLOR_BACKGROUND,
             fg=COLOR_TEXT,
             justify=tk.LEFT,
@@ -3009,7 +3067,7 @@ def export_selected_to_docx(search_term: str):
             command=lambda: [open_document(Path(save_path)), success_dialog.destroy()],
             bg=COLOR_SHELF,
             fg="white",
-            font=("Arial", 20, "bold"),
+            font=UI_FONTS.get("button", ("Arial", 18, "bold")),
             relief=tk.RAISED,
             padx=15,
             pady=8,
@@ -3024,7 +3082,7 @@ def export_selected_to_docx(search_term: str):
             command=success_dialog.destroy,
             bg=COLOR_BOOK,
             fg=COLOR_TEXT,
-            font=("Arial", 20, "bold"),
+            font=UI_FONTS.get("button_small", ("Arial", 14, "bold")),
             relief=tk.RAISED,
             padx=15,
             pady=8,
@@ -3511,6 +3569,80 @@ image_viewer_state = {
     "resize_job": None,
 }
 
+UI_SCALE = 1.0
+UI_FONTS = {}
+results_wrap_labels = []
+
+def _calc_ui_scale(screen_w: int, screen_h: int) -> float:
+    """Compute UI scale based on screen size with gentle bounds."""
+    base_w, base_h = 1400, 900
+    scale = min(screen_w / base_w, screen_h / base_h)
+    if platform.system() == "Windows":
+        scale *= 0.9
+    return max(0.85, min(1.15, scale))
+
+def _build_ui_fonts(scale: float) -> dict:
+    """Centralized font sizes to keep UI consistent and resizable."""
+    def _s(size: int) -> int:
+        return max(10, int(size * scale))
+    return {
+        "title": ("Times", _s(32), "bold"),
+        "subtitle": ("Times", _s(18), "italic"),
+        "section": ("Arial", _s(18), "bold"),
+        "label": ("Arial", _s(16)),
+        "button": ("Arial", _s(18), "bold"),
+        "button_small": ("Arial", _s(14), "bold"),
+        "entry": ("Arial", _s(16)),
+        "status": ("Arial", _s(13), "italic"),
+        "dropdown": ("Arial", _s(16)),
+        "tree": ("Arial", _s(14)),
+        "results_title": ("Arial", _s(22), "bold"),
+        "results_bold": ("Arial", _s(22), "bold"),
+        "results_row": ("Arial", _s(14)),
+        "results_row_italic": ("Arial", _s(13), "italic"),
+        "checkbox": ("Arial", _s(18)),
+        "page": ("Arial", _s(14)),
+        "quote": ("Arial", _s(14)),
+        "quote_bold": ("Arial", _s(14), "bold"),
+        "export": ("Arial", _s(18), "bold"),
+    }
+
+def _window_geometry(screen_w: int, screen_h: int, width_ratio: float, height_ratio: float, min_w: int, min_h: int) -> str:
+    """Return geometry string sized for current screen."""
+    width = int(min(screen_w * width_ratio, screen_w - 80))
+    height = int(min(screen_h * height_ratio, screen_h - 80))
+    width = max(min_w, width)
+    height = max(min_h, height)
+    x = max(0, int((screen_w - width) / 2))
+    y = max(0, int((screen_h - height) / 2))
+    return f"{width}x{height}+{x}+{y}"
+
+def _truncate_with_ellipsis(text: str, max_chars: int) -> str:
+    """Clamp text to max_chars with a trailing ellipsis."""
+    if not text:
+        return text
+    if max_chars <= 0:
+        return "..."
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= 3:
+        return "..."[:max_chars]
+    return text[: max_chars - 3].rstrip() + "..."
+
+def _format_code_display(code: str, max_chars: int, second_prefix_len: int = 7) -> str:
+    """Format multi-code strings to show first + prefix of second."""
+    if not code:
+        return code
+    parts = [p.strip() for p in code.split(", ")]
+    if len(parts) >= 2:
+        first = parts[0]
+        second = parts[1]
+        second_prefix = second[:second_prefix_len].rstrip()
+        has_more = len(parts) > 2 or len(second) > len(second_prefix)
+        suffix = "..." if has_more else ""
+        return f"{first}, {second_prefix}{suffix}"
+    return _truncate_with_ellipsis(code, max_chars)
+
 def create_gui():
     """Create and initialize the GUI."""
     
@@ -3525,7 +3657,13 @@ def create_gui():
     # Create main window with library theme
     root = tk.Tk()
     root.title("Biblioteca - Căutare Documente")
-    root.minsize(600, 450)
+    screen_w = root.winfo_screenwidth()
+    screen_h = root.winfo_screenheight()
+    global UI_SCALE, UI_FONTS
+    UI_SCALE = _calc_ui_scale(screen_w, screen_h)
+    UI_FONTS = _build_ui_fonts(UI_SCALE)
+    root.minsize(520, 420)
+    root.geometry("520x420")
     root.configure(bg="#F5E6D3")  # Warm beige background like old books
 
     def _on_app_close():
@@ -3577,7 +3715,7 @@ def create_gui():
     title_label = tk.Label(
         header_frame,
         text="📚 BIBLIOTECA 📚",
-        font=("Times", 50, "bold"),
+        font=UI_FONTS.get("title", ("Times", 32, "bold")),
         bg=COLOR_BACKGROUND,
         fg=COLOR_TEXT
     )
@@ -3586,7 +3724,7 @@ def create_gui():
     subtitle_label = tk.Label(
         header_frame,
         text="Selectează Biblioteca, Rafturi sau Volume pentru căutare",
-        font=("Times", 26, "italic"),
+        font=UI_FONTS.get("subtitle", ("Times", 18, "italic")),
         bg=COLOR_BACKGROUND,
         fg=COLOR_ACCENT
     )
@@ -3602,7 +3740,7 @@ def create_gui():
         command=on_select_folder,
         bg=COLOR_SHELF,
         fg="white",
-        font=("Arial", 26, "bold"),
+        font=UI_FONTS.get("button", ("Arial", 18, "bold")),
         relief=tk.RAISED,
         padx=15,
         pady=8,
@@ -3615,14 +3753,160 @@ def create_gui():
         text="Nicio bibliotecă selectată",
         fg=COLOR_ACCENT,
         bg=COLOR_BACKGROUND,
-        font=("Arial", 24, "italic"),
+        font=UI_FONTS.get("label", ("Arial", 16)),
         anchor="w"
     )
     folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-    # Library tree frame with scrollbars
+    # Instructions label
+    # instructions_label = tk.Label(
+    #     root,
+    #     text="💡 Click pe foldere pentru a le selecta/deselecta. Folderele cu 📗 conțin ocr.txt",
+    #     font=("Arial", 9),
+    #     bg=COLOR_BACKGROUND,
+    #     fg=COLOR_ACCENT,
+    #     pady=5
+    # )
+    # instructions_label.pack()
+
+    # Search section
+    search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    search_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    tk.Label(
+        search_frame,
+        text="Căutare:",
+        font=UI_FONTS.get("section", ("Arial", 18, "bold")),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(anchor="w", pady=(0, 5))
+
+    entry = tk.Entry(
+        search_frame,
+        font=UI_FONTS.get("entry", ("Arial", 16)),
+        relief=tk.SUNKEN,
+        bd=2
+    )
+    entry.pack(fill=tk.X, pady=5)
+
+    # Word span section
+    word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    word_span_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    tk.Label(
+        word_span_frame,
+        text="Span cuvinte:",
+        font=UI_FONTS.get("label", ("Arial", 16)),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    # Create dropdown for word span options
+    word_span_var = tk.StringVar(value="10")  # Default to 10 words
+    word_span_options = ["5", "10", "15", "20"]
+
+    word_span_dropdown = ttk.Combobox(
+        word_span_frame,
+        textvariable=word_span_var,
+        values=word_span_options,
+        state="readonly",
+        font=UI_FONTS.get("dropdown", ("Arial", 16)),
+        width=max(4, int(6 * UI_SCALE))
+    )
+    word_span_dropdown.pack(side=tk.LEFT)
+
+    # Word order section
+    word_order_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    word_order_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    tk.Label(
+        word_order_frame,
+        text="Ordinea cuvintelor:",
+        font=UI_FONTS.get("label", ("Arial", 16)),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    # Create dropdown for word order options
+    word_order_var = tk.StringVar(value="Exact")  # Default to exact order
+    word_order_options = ["Exact", "Aleatorie"]
+
+    word_order_dropdown = ttk.Combobox(
+        word_order_frame,
+        textvariable=word_order_var,
+        values=word_order_options,
+        state="readonly",
+        font=UI_FONTS.get("dropdown", ("Arial", 16)),
+        width=max(6, int(9 * UI_SCALE))
+    )
+    word_order_dropdown.pack(side=tk.LEFT)
+
+    # Generate button
+    button = tk.Button(
+        scrollable_main_frame,
+        text="🔍 Caută",
+        command=on_generate,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=UI_FONTS.get("button", ("Arial", 18, "bold")),
+        relief=tk.RAISED,
+        padx=20,
+        pady=10,
+        cursor="hand2"
+    )
+    button.pack(pady=15)
+
+    # Status label under the search button (shows volumes and duration)
+    global status_var
+    status_var = tk.StringVar(value="")
+    status_label = tk.Label(
+        scrollable_main_frame,
+        textvariable=status_var,
+        font=UI_FONTS.get("status", ("Arial", 13, "italic")),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_ACCENT,
+        justify=tk.LEFT
+    )
+    status_label.pack(pady=(0, 10), anchor="w", padx=20)
+
+    # Title reference section (open page by title)
+    title_search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    title_search_frame.pack(padx=15, pady=10, fill=tk.X)
+
+    tk.Label(
+        title_search_frame,
+        text="Titlu (deschide pagina):",
+        font=UI_FONTS.get("section", ("Arial", 18, "bold")),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(anchor="w", pady=(0, 5))
+
+    title_entry = tk.Entry(
+        title_search_frame,
+        font=UI_FONTS.get("entry", ("Arial", 16)),
+        relief=tk.SUNKEN,
+        bd=2
+    )
+    title_entry.pack(fill=tk.X, pady=5)
+    title_entry.bind("<Return>", lambda e: on_open_title_image())
+
+    title_open_btn = tk.Button(
+        title_search_frame,
+        text="📖 Deschide pagina",
+        command=on_open_title_image,
+        bg=COLOR_SHELF,
+        fg="white",
+        font=UI_FONTS.get("button", ("Arial", 18, "bold")),
+        relief=tk.RAISED,
+        padx=15,
+        pady=8,
+        cursor="hand2"
+    )
+    title_open_btn.pack(anchor="w", pady=(5, 0))
+
+    # Library tree frame with scrollbars (least important, moved to bottom)
     tree_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    tree_frame.pack(padx=15, pady=10, fill=tk.X)
+    tree_frame.pack(padx=15, pady=10, fill=tk.BOTH, expand=True)
 
     # Create scrollbars
     v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
@@ -3637,14 +3921,15 @@ def create_gui():
         xscrollcommand=h_scrollbar.set,
         selectmode="extended"
     )
-    library_tree.column("#0", width=600, minwidth=200, stretch=True)
+    tree_col_width = int(520 * UI_SCALE)
+    library_tree.column("#0", width=tree_col_width, minwidth=200, stretch=True)
     library_tree.column("path", width=0, stretch=False)  # Hidden column
     library_tree.column("type", width=0, stretch=False)  # Hidden column
 
     # Configure treeview font and row height
     style = ttk.Style()
-    style.configure("Treeview", font=("Arial", 24), rowheight=50)
-    style.configure("Treeview.Heading", font=("Arial", 24, "bold"))
+    style.configure("Treeview", font=UI_FONTS.get("tree", ("Arial", 14)), rowheight=int(28 * UI_SCALE))
+    style.configure("Treeview.Heading", font=UI_FONTS.get("tree", ("Arial", 14)))
 
     # Configure tags for styling
     library_tree.tag_configure("folder", background="#F0E0C0", foreground=COLOR_TEXT)
@@ -3686,7 +3971,7 @@ def create_gui():
         command=select_all_items,
         bg=COLOR_BOOK,
         fg=COLOR_TEXT,
-        font=("Arial", 22),
+        font=UI_FONTS.get("button_small", ("Arial", 14, "bold")),
         relief=tk.RAISED,
         padx=10,
         pady=5,
@@ -3700,157 +3985,13 @@ def create_gui():
         command=deselect_all_items,
         bg=COLOR_BOOK,
         fg=COLOR_TEXT,
-        font=("Arial", 22),
+        font=UI_FONTS.get("button_small", ("Arial", 14, "bold")),
         relief=tk.RAISED,
         padx=10,
         pady=5,
         cursor="hand2"
     )
     deselect_all_btn.pack(side=tk.LEFT)
-
-    # Instructions label
-    # instructions_label = tk.Label(
-    #     root,
-    #     text="💡 Click pe foldere pentru a le selecta/deselecta. Folderele cu 📗 conțin ocr.txt",
-    #     font=("Arial", 9),
-    #     bg=COLOR_BACKGROUND,
-    #     fg=COLOR_ACCENT,
-    #     pady=5
-    # )
-    # instructions_label.pack()
-
-    # Search section
-    search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    search_frame.pack(padx=15, pady=10, fill=tk.X)
-
-    tk.Label(
-        search_frame,
-        text="Căutare:",
-        font=("Arial", 26, "bold"),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
-    ).pack(anchor="w", pady=(0, 5))
-
-    entry = tk.Entry(
-        search_frame,
-        font=("Arial", 26),
-        relief=tk.SUNKEN,
-        bd=2
-    )
-    entry.pack(fill=tk.X, pady=5)
-
-    # Word span section
-    word_span_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    word_span_frame.pack(padx=15, pady=5, fill=tk.X)
-
-    tk.Label(
-        word_span_frame,
-        text="Span cuvinte:",
-        font=("Arial", 24),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
-    ).pack(side=tk.LEFT, padx=(0, 10))
-
-    # Create dropdown for word span options
-    word_span_var = tk.StringVar(value="10")  # Default to 10 words
-    word_span_options = ["5", "10", "15", "20"]
-
-    word_span_dropdown = ttk.Combobox(
-        word_span_frame,
-        textvariable=word_span_var,
-        values=word_span_options,
-        state="readonly",
-        font=("Arial", 36)
-    )
-    word_span_dropdown.pack(side=tk.LEFT)
-
-    # Word order section
-    word_order_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    word_order_frame.pack(padx=15, pady=5, fill=tk.X)
-
-    tk.Label(
-        word_order_frame,
-        text="Ordinea cuvintelor:",
-        font=("Arial", 24),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
-    ).pack(side=tk.LEFT, padx=(0, 10))
-
-    # Create dropdown for word order options
-    word_order_var = tk.StringVar(value="Exact")  # Default to exact order
-    word_order_options = ["Exact", "Aleatorie"]
-
-    word_order_dropdown = ttk.Combobox(
-        word_order_frame,
-        textvariable=word_order_var,
-        values=word_order_options,
-        state="readonly",
-        font=("Arial", 36)
-    )
-    word_order_dropdown.pack(side=tk.LEFT)
-
-    # Generate button
-    button = tk.Button(
-        scrollable_main_frame,
-        text="🔍 Caută",
-        command=on_generate,
-        bg=COLOR_SHELF,
-        fg="white",
-        font=("Arial", 30, "bold"),
-        relief=tk.RAISED,
-        padx=20,
-        pady=10,
-        cursor="hand2"
-    )
-    button.pack(pady=15)
-
-    # Status label under the search button (shows volumes and duration)
-    global status_var
-    status_var = tk.StringVar(value="")
-    status_label = tk.Label(
-        scrollable_main_frame,
-        textvariable=status_var,
-        font=("Arial", 18, "italic"),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_ACCENT,
-        justify=tk.LEFT
-    )
-    status_label.pack(pady=(0, 10), anchor="w", padx=20)
-
-    # Title reference section (open page by title)
-    title_search_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
-    title_search_frame.pack(padx=15, pady=10, fill=tk.X)
-
-    tk.Label(
-        title_search_frame,
-        text="Titlu (deschide pagina):",
-        font=("Arial", 26, "bold"),
-        bg=COLOR_BACKGROUND,
-        fg=COLOR_TEXT
-    ).pack(anchor="w", pady=(0, 5))
-
-    title_entry = tk.Entry(
-        title_search_frame,
-        font=("Arial", 26),
-        relief=tk.SUNKEN,
-        bd=2
-    )
-    title_entry.pack(fill=tk.X, pady=5)
-    title_entry.bind("<Return>", lambda e: on_open_title_image())
-
-    title_open_btn = tk.Button(
-        title_search_frame,
-        text="📖 Deschide pagina",
-        command=on_open_title_image,
-        bg=COLOR_SHELF,
-        fg="white",
-        font=("Arial", 26, "bold"),
-        relief=tk.RAISED,
-        padx=15,
-        pady=8,
-        cursor="hand2"
-    )
-    title_open_btn.pack(anchor="w", pady=(5, 0))
 
     # Global variable to store results window
     results_window = None
