@@ -41,6 +41,12 @@ selected_paths = []  # List of selected paths (Biblioteca, Rafturi, or Volume pa
 selected_volumes = []  # List of selected "volumes" (final folders with ocr.txt)
 status_var = None
 
+global should_reload
+global normalized_pages
+global normalized_pages_key
+should_reload = True
+normalized_pages = []
+normalized_pages_key = None
 # ---------- OCR Constants ----------
 # Header de pagină în fișierele OCR (*.txt)
 # ex: === PAGE 151 (pag151.jpg) ===
@@ -284,6 +290,15 @@ def words_match_simple(query_word: str, text_word: str) -> bool:
     
     # Fallback (shouldn't reach here, but handle it)
     return lev_distance <= 1
+
+
+def words_match_exact(query_word: str, text_word: str) -> bool:
+    """
+    Exact word matching (after normalization).
+    """
+    if not query_word or not text_word:
+        return False
+    return query_word == text_word
 
 
 def words_match(query_word: str, text_word: str) -> bool:
@@ -840,7 +855,7 @@ def load_index_rtf(index_file: Path) -> Dict[str, List[str]]:
                 if len(parts) != 2:
                     continue
                 
-                    title_clean = parts[0].strip()
+                title_clean = parts[0].strip()
                 codes_part = parts[1].strip()
                 
                 # Only process if we have a reasonable title (at least 3 characters)
@@ -1397,7 +1412,7 @@ def _search_single_page_wrapper(args):
     return _search_single_page(*args)
 
 
-def check_words_in_word_span(query_words: list, page_lines: list, word_span: int, exact_order: bool = True, threshold: int = DEFAULT_THRESHOLD) -> tuple:
+def check_words_in_word_span(query_words: list, page_lines: list, word_span: int, exact_order: bool = True, threshold: int = DEFAULT_THRESHOLD, search_mode: str = "fuzzy") -> tuple:
     """
     Verifică dacă toate cuvintele din query apar într-un span de cuvinte.
     exact_order: True = cuvintele trebuie să apară în ordinea exactă, False = orice ordine
@@ -1451,6 +1466,7 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     best_end_line = 0
     best_matched_words = []
     found_all = False
+    match_func = words_match if search_mode == "fuzzy" else words_match_exact
     
     # Slide a window of word_span words across the text
     for start_word_idx in range(len(all_words)):
@@ -1478,7 +1494,7 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
                 found_idx = None
                 for idx, span_word in enumerate(span_words):
                     # Only match if this word hasn't been matched yet and it matches the query word
-                    if idx not in matched_indices and words_match(query_word, span_word):
+                    if idx not in matched_indices and match_func(query_word, span_word):
                         found_idx = idx
                         matched_indices.add(idx)  # Mark this word as used
                         break
@@ -1506,7 +1522,7 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
                 found = False
                 for idx, span_word in enumerate(span_words):
                     # Only match if this word hasn't been matched yet and it matches the query word
-                    if idx not in matched_indices and words_match(query_word, span_word):
+                    if idx not in matched_indices and match_func(query_word, span_word):
                         matched_indices.add(idx)  # Mark this word as used
                         words_found += 1
                         found = True
@@ -1516,6 +1532,17 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
                     break
         
         if words_found == 0:
+            continue
+        
+        if search_mode == "exact":
+            if words_found == len(query_words):
+                score = 100
+                if score > best_score:
+                    best_score = score
+                    best_start_line = start_line_idx
+                    best_end_line = end_line_idx
+                    best_matched_words = [w[2] for w in span_words_data]
+                    found_all = True
             continue
         
         word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
@@ -1549,7 +1576,7 @@ def check_words_in_word_span(query_words: list, page_lines: list, word_span: int
     return (found_all, best_score, best_start_line, best_end_line, best_matched_words)
 
 
-def _search_single_page(page, norm_query, query_words, query_text, threshold, word_span, exact_order):
+def _search_single_page(page, norm_query, query_words, query_text, threshold, word_span, exact_order, search_mode):
     """
     Search a single page for matches.
     """
@@ -1558,7 +1585,7 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
     
     if word_span is not None and word_span > 0 and page_lines:
         found, score, start_line_idx, end_line_idx, matched_words = check_words_in_word_span(
-            query_words, page_lines, word_span, exact_order, threshold
+            query_words, page_lines, word_span, exact_order, threshold, search_mode
         )
         
         if found and score >= threshold:
@@ -1598,25 +1625,45 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
     if not norm_page:
         return page_matches
     
-    score = fuzz.partial_ratio(norm_query, norm_page, score_cutoff=threshold)
-    norm_page_words = norm_page.split()
-    # Ensure each query word matches a different text word
-    matched_word_indices = set()
-    words_found = 0
-    for query_word in query_words:
-        for idx, text_word in enumerate(norm_page_words):
-            if idx not in matched_word_indices and words_match(query_word, text_word):
-                matched_word_indices.add(idx)
-                words_found += 1
-                break
-    word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
-    
-    if words_found == len(query_words):
-        final_score = max(score, word_coverage * 0.9)
-    elif words_found >= len(query_words) * 0.8:
-        final_score = (score + word_coverage) / 2
+    match_func = words_match if search_mode == "fuzzy" else words_match_exact
+    if search_mode == "exact":
+        if exact_order:
+            found_match = norm_query in norm_page
+        else:
+            norm_page_words = norm_page.split()
+            matched_word_indices = set()
+            words_found = 0
+            for query_word in query_words:
+                for idx, text_word in enumerate(norm_page_words):
+                    if idx not in matched_word_indices and match_func(query_word, text_word):
+                        matched_word_indices.add(idx)
+                        words_found += 1
+                        break
+            found_match = (words_found == len(query_words))
+        
+        if not found_match:
+            return page_matches
+        final_score = 100
     else:
-        final_score = score * (words_found / len(query_words))
+        score = fuzz.partial_ratio(norm_query, norm_page, score_cutoff=threshold)
+        norm_page_words = norm_page.split()
+        # Ensure each query word matches a different text word
+        matched_word_indices = set()
+        words_found = 0
+        for query_word in query_words:
+            for idx, text_word in enumerate(norm_page_words):
+                if idx not in matched_word_indices and match_func(query_word, text_word):
+                    matched_word_indices.add(idx)
+                    words_found += 1
+                    break
+        word_coverage = (words_found / len(query_words)) * 100 if query_words else 0
+        
+        if words_found == len(query_words):
+            final_score = max(score, word_coverage * 0.9)
+        elif words_found >= len(query_words) * 0.8:
+            final_score = (score + word_coverage) / 2
+        else:
+            final_score = score * (words_found / len(query_words))
     
     if final_score >= threshold:
         snippet = find_match_context(query_text, page_lines)
@@ -1632,7 +1679,7 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
         match_start_idx = None
         for i, norm_word in enumerate(norm_snippet_words):
             for norm_query_word in norm_query_words:
-                if words_match(norm_query_word, norm_word):
+                if match_func(norm_query_word, norm_word):
                     match_start_idx = i
                     break
             if match_start_idx is not None:
@@ -1645,21 +1692,40 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
             norm_line = normalize_text(line)
             if not norm_line:
                 continue
-            norm_line_words = norm_line.split()
-            # Ensure each query word matches a different text word
-            matched_word_indices = set()
-            words_found = 0
-            for query_word in query_words:
-                for idx, text_word in enumerate(norm_line_words):
-                    if idx not in matched_word_indices and words_match(query_word, text_word):
-                        matched_word_indices.add(idx)
-                        words_found += 1
-                        break
-            if words_found > 0:
-                score = fuzz.partial_ratio(norm_query, norm_line, score_cutoff=threshold)
-                if score > best_match_score:
-                    best_match_score = score
+            if search_mode == "exact":
+                if exact_order:
+                    found_line = norm_query in norm_line
+                else:
+                    norm_line_words = norm_line.split()
+                    matched_word_indices = set()
+                    words_found = 0
+                    for query_word in query_words:
+                        for idx, text_word in enumerate(norm_line_words):
+                            if idx not in matched_word_indices and match_func(query_word, text_word):
+                                matched_word_indices.add(idx)
+                                words_found += 1
+                                break
+                    found_line = (words_found == len(query_words))
+                if found_line:
+                    best_match_score = 100
                     best_line_idx = i
+                    break
+            else:
+                norm_line_words = norm_line.split()
+                # Ensure each query word matches a different text word
+                matched_word_indices = set()
+                words_found = 0
+                for query_word in query_words:
+                    for idx, text_word in enumerate(norm_line_words):
+                        if idx not in matched_word_indices and match_func(query_word, text_word):
+                            matched_word_indices.add(idx)
+                            words_found += 1
+                            break
+                if words_found > 0:
+                    score = fuzz.partial_ratio(norm_query, norm_line, score_cutoff=threshold)
+                    if score > best_match_score:
+                        best_match_score = score
+                        best_line_idx = i
         
         if match_start_idx is not None:
             # Extract a window around the match (use word_span if available, otherwise 20 words)
@@ -1706,12 +1772,13 @@ def _search_single_page(page, norm_query, query_words, query_text, threshold, wo
     return page_matches
 
 
-def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, word_span: int = None, exact_order: bool = True, use_inflections: bool = True):
+def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESHOLD, word_span: int = None, exact_order: bool = True, use_inflections: bool = True, search_mode: str = "fuzzy"):
     """
     Caută query_text în toate paginile și returnează toate match-urile cu score >= threshold.
     word_span: numărul de cuvinte în care să caute (None = întreaga pagină)
     exact_order: True = cuvintele trebuie să apară în ordinea exactă, False = orice ordine
     use_inflections: Dacă True, extinde căutarea cu forme flexionare din DEX online
+    search_mode: "fuzzy" (comportamentul actual) sau "exact"
     """
     search_start = time.perf_counter()
     print(f"[{time.strftime('%H:%M:%S')}] Starting search in {len(pages)} pages...")
@@ -1722,6 +1789,8 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     
     # Extinde cuvintele cu forme flexionare dacă este activat
     inflection_start = time.perf_counter()
+    if search_mode == "exact":
+        use_inflections = False
     if use_inflections:
         expanded_words = expand_search_terms_with_inflections(
             query_text, 
@@ -1753,7 +1822,7 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
         future_to_idx = {
             executor.submit(
                 _search_single_page_wrapper,
-                (page, norm_query, query_words, query_text, threshold, word_span, exact_order)
+                (page, norm_query, query_words, query_text, threshold, word_span, exact_order, search_mode)
             ): idx
             for idx, page in enumerate(pages)
         }
@@ -1786,20 +1855,22 @@ def search_text_in_pages(query_text: str, pages, threshold: int = DEFAULT_THRESH
     return matches
 
 
-def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, threshold: int = DEFAULT_THRESHOLD, selected_volumes: list = None, exact_order: bool = True):
+def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, threshold: int = DEFAULT_THRESHOLD, selected_volumes: list = None, exact_order: bool = True, search_mode: str = "fuzzy"):
     """
     Run the search and return matches without generating documents.
     selected_volumes: list of paths to volumes (folders with ocr.txt) to search
     word_span: number of words to search within (None = entire page)
     exact_order: True = words must appear in exact order, False = any order
+    search_mode: "fuzzy" (current behavior) or "exact"
     Returns: list of match dictionaries
     """
+    global should_reload, normalized_pages, normalized_pages_key
     overall_start = time.perf_counter()
     print(f"\n{'='*60}")
     print(f"[{time.strftime('%H:%M:%S')}] ===== STARTING SEARCH =====")
     print(f"[{time.strftime('%H:%M:%S')}] Query: '{query_text}'")
     print(f"[{time.strftime('%H:%M:%S')}] Volumes: {len(selected_volumes) if selected_volumes else 0}")
-    print(f"[{time.strftime('%H:%M:%S')}] Word span: {word_span}, Exact order: {exact_order}, Threshold: {threshold}")
+    print(f"[{time.strftime('%H:%M:%S')}] Word span: {word_span}, Exact order: {exact_order}, Search mode: {search_mode}, Threshold: {threshold}")
     print(f"{'='*60}\n")
     
     if not ocr_root.is_dir():
@@ -1810,7 +1881,13 @@ def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, thre
     
     # Load OCR pages (only from selected volumes)
     load_start = time.perf_counter()
-    pages = load_ocr_pages(ocr_root, selected_volumes)
+    # pages = load_ocr_pages(ocr_root, selected_volumes)
+    current_key = (str(ocr_root), tuple(sorted(selected_volumes or [])))
+    if should_reload or not normalized_pages or normalized_pages_key != current_key:
+        normalized_pages = load_ocr_pages(ocr_root, selected_volumes)
+        should_reload = False
+        normalized_pages_key = current_key
+    pages = normalized_pages
     load_end = time.perf_counter()
     load_time = load_end - load_start
     print(f"[{time.strftime('%H:%M:%S')}] === Loading phase: {load_time:.2f}s ===\n")
@@ -1820,7 +1897,7 @@ def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, thre
     
     # Search
     search_start = time.perf_counter()
-    matches = search_text_in_pages(query_text, pages, threshold, word_span=word_span, exact_order=exact_order)
+    matches = search_text_in_pages(query_text, pages, threshold, word_span=word_span, exact_order=exact_order, search_mode=search_mode)
     search_end = time.perf_counter()
     search_time = search_end - search_start
     print(f"[{time.strftime('%H:%M:%S')}] === Search phase: {search_time:.2f}s ===\n")
@@ -1839,7 +1916,7 @@ def run_search_only(query_text: str, ocr_root: Path, word_span: int = None, thre
     return matches
 
 
-def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: Path, word_span: int = None, threshold: int = DEFAULT_THRESHOLD, selected_volumes: list = None, exact_order: bool = True):
+def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: Path, word_span: int = None, threshold: int = DEFAULT_THRESHOLD, selected_volumes: list = None, exact_order: bool = True, search_mode: str = "fuzzy"):
     """
     Run the search and generate the report document.
     This replaces the subprocess call to search_text.py
@@ -1848,6 +1925,7 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
     word_span: number of words to search within (None = entire page)
     exact_order: True = words must appear in exact order, False = any order
     """
+    global should_reload, normalized_pages, normalized_pages_key
     if not ocr_root.is_dir():
         raise Exception(f"OCR root folder not found: {ocr_root}")
     
@@ -1855,13 +1933,19 @@ def run_search_and_generate_report(query_text: str, ocr_root: Path, output_dir: 
         raise Exception(f"Threshold must be between 0 and 100, got: {threshold}")
     
     # Load OCR pages (only from selected volumes)
-    pages = load_ocr_pages(ocr_root, selected_volumes)
+    # pages = load_ocr_pages(ocr_root, selected_volumes)
+    current_key = (str(ocr_root), tuple(sorted(selected_volumes or [])))
+    if should_reload or not normalized_pages or normalized_pages_key != current_key:
+        normalized_pages = load_ocr_pages(ocr_root, selected_volumes)
+        should_reload = False
+        normalized_pages_key = current_key
+    pages = normalized_pages
     
     if not pages:
         raise Exception("No pages found in selected folders. Please check your selection.")
     
     # Search
-    matches = search_text_in_pages(query_text, pages, threshold, word_span=word_span, exact_order=exact_order)
+    matches = search_text_in_pages(query_text, pages, threshold, word_span=word_span, exact_order=exact_order, search_mode=search_mode)
     
     # Write results to text file
     output_file = output_dir / "search-result.txt"
@@ -2431,6 +2515,7 @@ def on_select_folder():
     """Handle the Select Biblioteca button click."""
     global selected_root_folder, selected_paths, selected_volumes
     global folder_label, library_tree
+
     
     # Get last library directory or use home directory
     last_dir = get_last_library_dir()
@@ -2711,7 +2796,8 @@ def display_results_in_table(matches: list, search_term: str, word_span: int = 1
                     font=UI_FONTS.get("results_row", ("Arial", 14)),
                     bg=COLOR_BACKGROUND,
                     fg=COLOR_TEXT,
-                    anchor="w"
+                    anchor="w",
+                    justify="left"
                 )
                 code_label.pack(anchor="w", pady=(2, 0))
         
@@ -3154,7 +3240,7 @@ def export_selected_to_docx(search_term: str):
 
 def on_generate():
     """Handle the Search button click."""
-    global entry, word_span_var, word_order_var, button, status_var
+    global entry, word_span_var, word_order_var, search_type_var, button, status_var
     search_term = entry.get().strip()
     words = search_term.split()
 
@@ -3201,6 +3287,10 @@ def on_generate():
     order_value = word_order_var.get()
     exact_order = (order_value == "Exact")
     
+    # Get search type (fuzzy or exact)
+    search_type_value = search_type_var.get()
+    search_mode = "exact" if search_type_value == "Exact" else "fuzzy"
+    
     def search_worker():
         """Run search in background thread."""
         try:
@@ -3211,7 +3301,8 @@ def on_generate():
                 word_span=word_span,
                 threshold=DEFAULT_THRESHOLD,
                 selected_volumes=selected_volumes,
-                exact_order=exact_order
+                exact_order=exact_order,
+                search_mode=search_mode
             )
             
             # Update GUI in main thread
@@ -3472,7 +3563,9 @@ def _collect_selected(item, selected_list):
 
 def update_selected_volumes():
     """Update the global selected_volumes list with all selected end folders (with ocr.txt)."""
-    global selected_volumes
+    global should_reload, selected_volumes, normalized_pages_key
+    should_reload = True
+    normalized_pages_key = None
     selected_volumes = []
     
     # Get all selected paths
@@ -3492,6 +3585,7 @@ def update_selected_volumes():
             else:
                 # Not a volume, search recursively for volumes within it
                 _find_all_volumes(path, selected_volumes)
+
 
 
 def _find_all_volumes(folder: Path, volumes_list: list):
@@ -3592,6 +3686,7 @@ entry = None
 title_entry = None
 word_span_var = None
 word_order_var = None
+search_type_var = None
 folder_label = None
 select_folder_button = None
 button = None
@@ -3682,7 +3777,19 @@ def _format_code_display(code: str, max_chars: int, second_prefix_len: int = 7) 
         second_prefix = second[:second_prefix_len].rstrip()
         has_more = len(parts) > 2 or len(second) > len(second_prefix)
         suffix = "..." if has_more else ""
-        return f"{first}, {second_prefix}{suffix}"
+        combined = f"{first}, {second_prefix}{suffix}"
+        if max_chars > 0 and len(combined) > max_chars:
+            line1 = _truncate_with_ellipsis(first, max_chars)
+            line2 = _truncate_with_ellipsis(f"{second_prefix}{suffix}", max_chars)
+            return f"{line1}\n{line2}"
+        return combined
+    if max_chars > 0 and len(code) > max_chars:
+        line1 = code[:max_chars].rstrip()
+        remainder = code[max_chars:].lstrip()
+        if remainder:
+            line2 = _truncate_with_ellipsis(remainder, max_chars)
+            return f"{line1}\n{line2}"
+        return line1
     return _truncate_with_ellipsis(code, max_chars)
 
 def create_gui():
@@ -3693,7 +3800,7 @@ def create_gui():
     global library_tree, match_checkboxes
     global results_window, results_scrollable_frame, results_canvas
     global export_button_frame, results_title_label
-    global entry, title_entry, word_span_var, word_order_var
+    global entry, title_entry, word_span_var, word_order_var, search_type_var
     global folder_label, select_folder_button, button
     
     # Create main window with library theme
@@ -3882,6 +3989,31 @@ def create_gui():
         width=max(6, int(9 * UI_SCALE))
     )
     word_order_dropdown.pack(side=tk.LEFT)
+
+    # Search type section
+    search_type_frame = tk.Frame(scrollable_main_frame, bg=COLOR_BACKGROUND)
+    search_type_frame.pack(padx=15, pady=5, fill=tk.X)
+
+    tk.Label(
+        search_type_frame,
+        text="Tipul căutării:",
+        font=UI_FONTS.get("label", ("Arial", 16)),
+        bg=COLOR_BACKGROUND,
+        fg=COLOR_TEXT
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    search_type_var = tk.StringVar(value="Fuzzy")  # Default to fuzzy (current behavior)
+    search_type_options = ["Fuzzy", "Exact"]
+
+    search_type_dropdown = ttk.Combobox(
+        search_type_frame,
+        textvariable=search_type_var,
+        values=search_type_options,
+        state="readonly",
+        font=UI_FONTS.get("dropdown", ("Arial", 16)),
+        width=max(6, int(9 * UI_SCALE))
+    )
+    search_type_dropdown.pack(side=tk.LEFT)
 
     # Generate button
     button = tk.Button(
