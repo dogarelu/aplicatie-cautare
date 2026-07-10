@@ -36,7 +36,7 @@ except ImportError:
 
 
 # Global variable to store selected root folder and selected paths
-selected_root_folder = None
+selected_root_folder = None # test
 selected_paths = []  # List of selected paths (Biblioteca, Rafturi, or Volume paths)
 selected_volumes = []  # List of selected "volumes" (final folders with ocr.txt)
 status_var = None
